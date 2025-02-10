@@ -1,0 +1,7 @@
+.env
+__pycache__
+mlruns
+.DS_store
+local_runs
+tmp
+venv/
