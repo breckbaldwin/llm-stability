@@ -6,139 +6,143 @@ import random
 import numpy as np
 import torch
 from datasets import Dataset
+from dotenv import load_dotenv
+import re
+
 
 """
 Contains helper functions. 
 """
 
-"""
- * Copyright 2024 Comcast Cable Communications Management, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-"""
-
-
-def parse_file_name(file_name: str):
-    """Splits file_name into model_name, task and experiment_seed
-    arguments:
-        file_name: str
-    returns:
-        model_name: str
-        task: str
-        experiment_seed: str
+def experiment_setup(models:list, 
+                     model_configs:list, 
+                     tasks:list, 
+                     task_configs:list) -> list:
+    """Returns all possible experiment tuples given params. 
+    Args:
+        models (list) 
+        model_configs (list) 
+        tasks (list) 
+        task_configs (list)
+    Returns:
+        list(4-tuples of model, model_config, task, task_config)
     """
+    experiment_setups = []
+    for model in models:
+        for model_config in model_configs:
+            for task in tasks:
+                for task_config in task_configs:
+                    experiment_setups.append((model, 
+                                             model_config,
+                                             task,
+                                             task_config))
+    return experiment_setups
 
-    parsed_list = file_name.split("_")
-    model_name = parsed_list[0]
-    experiment_seed = parsed_list[-1].replace(".csv", "")
-    task = "_".join(parsed_list[1:-1])
-    return model_name, task, experiment_seed
 
-
-def make_inference(model: AzureOpenAI | OpenAI, model_name: str, message: str):
-    """Runs the LLM and returns response.
-    arguments:
-        model: AzuerOpenAI object
-        model_name: str
-        message: str data to be processed
-    returns:
-        str: raw response
+def parse_parenthesized_answers(answers: list, row:pd.Series, raw_choices=None) -> (str, None):
     """
-    if model_name == "databricks-mpt-30b-instruct":
-        response = model.completions.create(message, model=model_name, temperature=0)
-        raw_response = response.choices[0].text
-        return raw_response
-    else:
-        response = model.chat.completions.create(
-            messages=[{"role": "user", "content": message}],
-            model=model_name,
-            temperature=0,
-        )
-        raw_response = response.choices[0].message.content
-        return raw_response
+    Returns parsed answer from list pulled from 'response' index of Series. 
+    Applies uniqueness presupposed breadth first search a salience ranking (last sentence, antepenultimate + penultimate + last, entire answer) and then through a backoff sequence per salience level as follows:
+    exact match substring match, case insensitive substring match and finally
+    a case insensitive search with `()` replaced with word boundaries. Has
+    ability to use LLM answer parsing but not implemented. 
+    Args:
+        answers (list): Answers in the form [(A), (B), (C), (D)]
+        row (pd.Series): Row form dataframe being evaluated
+    Returns: 
+        str: Answer if found in original form or None if no answer found
+    Raises:
+        LookupError if there is not a unique solution 
 
+    Examples Blown UP:
+    "Since all the statements (A), (B), (C), and (D) are true, none of them is false. Therefore, there seems to be a mistake in the problem statement or the options provided. However, based on the given options and the analysis, none of the statements is false."
 
-def configure_model(model_name: str):
-    """Returns object to run LLM.
+    "So, the answer is:
+(A) 0. (B) 1. (C) 2. (D) 3.
 
-    arguments:
-        model_name: str
-    returns:
-        client: AzureOpenAI|OpenAI
+The correct answer is:
+None of the given options are correct. The dimension that cannot be the dimension of \( V \cap W \) is 4."
+        
+
     """
-    # below will have to be specified
-    OPENAI_API_TYPE = "azure"
-    AZURE_ENDPOINT_GPT_3_5 = "https://"
-    AZURE_ENDPOINT_GPT_4_0 = "https://"
-    MIXTRAL_ETC_ENDPOINT = "https://"
-    LLAMA_3_8b_ENDPOINT = "https://"
+    matches = set()
+    intent_backoff = ['answer is', 'boxed choice', 'exact_word', 'case_insensitive',    
+                      'sub_string', 'llm'] #llm unused
+    sentences = row['response'].split('\n')
+    salience_ranking = []
+    salience_ranking.append(sentences[-1:]) # last sentence
+    if len(sentences) > 1:
+        salience_ranking.append(sentences[-3:]) # up to last 3 sentences
+    if len(sentences) > 3:
+        salience_ranking.append(sentences) # all sentences
+    for sents in salience_ranking:
+        text = "\n".join(sents)
+        for match_type in intent_backoff:
+            for i, answer in enumerate(answers):
+                # if match_type == 'boxed choice' and raw_choices not None:
+                #     choice = raw_choices[i]
+                    
+                    #harvest boxed latex
+                    #eval and look for float match
 
-    if model_name == "gpt-3.5-turbo":
-        deployment_id = "AppliedAI-gpt-35-turbo"
-        client = AzureOpenAI(
-            azure_endpoint=AZURE_ENDPOINT_GPT_3_5,
-            api_key=os.getenv("OPENAI_API_KEY"),
-            api_version="2023-07-01-preview",
-            azure_deployment=deployment_id,
-        )
-    elif model_name == "gpt-4o":
-        deployment_id = "AppliedAI-gpt-4o"
-        client = AzureOpenAI(
-            azure_endpoint=AZURE_ENDPOINT_GPT_4_0,
-            api_key=os.getenv("OPENAI_GPT4_KEY"),
-            api_version="2024-04-01-preview",
-            azure_deployment=deployment_id,
-        )
-    elif model_name == "finetuned-3.5":
-        deployment_id = "mmlu"
-        client = AzureOpenAI(
-            azure_endpoint=AZURE_ENDPOINT_GPT_3_5,
-            api_key=os.getenv("OPENAI_API_KEY"),
-            api_version="2024-02-01",
-            azure_deployment=deployment_id,
-        )
-    elif (
-        (model_name == "llama-3-70b")
-        or (model_name == "mixtral-8x7b-instruct")
-        or (model_name == "mpt-30b")
-    ):
-        client = OpenAI(
-            api_key=os.getenv("DATABRICKS_TOKEN"),
-            base_url=MIXTRAL_ETC_ENDPOINT,
-        )
-    elif model_name == "llama-3-8b":
-        client = OpenAI(
-            api_key=os.getenv("LLAMA_3_8B_KEY"),
-            base_url=LLAMA_3_8b_ENDPOINT,
-        )
-    return client
+                if match_type == 'answer is':
+                    escaped_parens = \
+                        answer.replace('(', r'\(').replace(')', r'\)')
+                    answer_re = fr'(T|t)he answer is {escaped_parens}'
+                    if re.search(answer_re, text):
+                        matches.add(answer)
+                if match_type == 'exact_word':
+                    answer_re =\
+                            answer.replace('(', r'\(').replace(')', r'\)')
+                    if re.search(answer_re, text):
+                        matches.add(answer)
+                if match_type == 'case_insensitive':
+                    answer_re =\
+                            answer.replace(')', r'\)').replace('(', r'(?i)\(')
+                    if re.search(answer_re, text):
+                        matches.add(answer)
+                if match_type == 'sub_string':
+                    answer_re =\
+                        answer.replace(')', r'\b').replace('(', r'(?i)\b')
+                    if re.search(fr'{answer_re}', text):
+                        matches.add(answer)
+            if len(matches) == 1:
+                return matches.pop()
+            if len(matches) > 1:
+                raise LookupError(f"Blown UP: {text}")
+        
 
-
-def get_fewshot_examples(task: str):
-    """Pulls examples from indicated yaml file
-    arguments:
-        task: str name of yaml file to get few shots data from
-    returns:
-        data: list of all shot examples
+def parse_string(answers: list, row:pd.Series) -> (str, None):
     """
-    with open(f"few_shot_examples/{task}.yaml") as stream:
-        try:
-            data = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
-        except Exception as e:
-            print(e)
-    return data
+    Returns parsed answer from list pulled from 'response' index of Series. 
+    Applies uniqueness presupposed breadth first search through backoff sequence
+    of exact match substring match, case insensitive substring match with word boundaries. Has ability to use LLM answer parsing but not implemented. 
+    Args:
+        answers (list): Answers in the form ['Yes', 'No']
+        row (pd.Series): Row form dataframe being evaluated
+    Returns: 
+        str: Answer if found in original form or None if no answer found
+    Raises:
+        LookupError if there is not a unique solution 
+    """
+    matches = set()
+    intent_backoff = ['exact_word', 'case_insensitive', 'llm']
+    if not isinstance(row['response'], str):
+        return None
+    for match_type in intent_backoff:
+        for answer in answers:
+            if match_type == 'exact_word':
+                answer_re = rf'\b{answer}\b'
+                if re.search(answer_re, row['response']):
+                    matches.add(answer)
+            if match_type == 'case_insensitive':
+                answer_re = rf'(?i)\b{answer}\b'
+                if re.search(answer_re, row['response']):
+                    matches.add(answer)
+        if len(matches) == 1:
+            return matches.pop()
+        if len(matches) > 1:
+            raise LookupError(f"Blown UP: {row['response']}")
 
 
 def convert_mmlu_data(data: Dataset):
@@ -163,49 +167,5 @@ def convert_mmlu_data(data: Dataset):
     return final_data
 
 
-def set_seed(seed=123):
-    """Sets various seeds to constant value.
-    arguments:
-        seed: int
-    """
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
 
 
-def discard_text_after_answer(txt):
-    """Parses out answer from response
-    arguments
-        txt: str LLM response text
-    returns
-        txt: str
-    """
-    if txt[-1] == ".":
-        txt = txt[:-1]
-    if txt[-1] == ",":
-        txt = txt[:-1]
-
-    if "(a)" in txt[:6].lower():
-        return "(A)"
-    elif "(b)" in txt[:6].lower():
-        return "(B)"
-    elif "(c)" in txt[:6].lower():
-        return "(C)"
-    elif "(d)" in txt[:6].lower():
-        return "(D)"
-    elif "(e)" in txt[:6].lower():
-        return "(E)"
-    elif "(f)" in txt[:6].lower():
-        return "(F)"
-    elif "(g)" in txt[:6].lower():
-        return "(G)"
-    elif "(h)" in txt[:6].lower():
-        return "(H)"
-    elif "(i)" in txt[:6].lower():
-        return "(I)"
-    elif "(j)" in txt[:6].lower():
-        return "(J)"
-    elif "(k)" in txt[:6].lower():
-        return "(K)"
-    else:
-        return txt
