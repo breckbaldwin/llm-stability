@@ -182,33 +182,26 @@ def run(run_args: dict, date_str: str) -> str:
     
 
 if __name__ == "__main__":
-    """Example call:
-    `python run_experiment.py -m model_template -t professional_accounting -d test -n 1 -mc '{"temperature": 0.0}' -l 1
-    `
-    If you are developing and don't want to have lots of timestamp dirs 
-    then run with `-et` `--earliest time` and you will get all runs under `<output_dir>/0001-01-01_00-00-00`. 
-    """
-    usage_message = "python run_experiment.py -m gpt-4o -t navigate -n 2 -l 3"
-    epilog_message = "Documentation for project is at: https://github.com/comcast-explainable-ai-lab-group/llm_stability/blob/main/README.md"
+    
+    usage_message = "python run_experiment.py -m gpt-4o -mc '{\"temperature\":0.0, \"seed\": 12, \"top_p_k\": 0.0}' -t navigate -tc '{\"prompt_type\": \"v2\", \"shots\": 0}' -n 2 -l 3 -et"
+
+    epilog_message = "Documentation for project is at: https://github.com/Comcast/llm-stability/blob/main/README.md"
 
     sys.path.append(os.path.join(os.getcwd(), 'models'))
     sys.path.append(os.path.join(os.getcwd(), 'tasks'))    
-    default_mc = '{"temperature":0.0, "seed": 12, "top_p_k": 0.0}'
-    default_tc = '{"prompt_type": "v2", "shots": 0}'
     if not os.path.exists("local_runs"):
         print((f"Stopping, expecting local_runs/ in working directory," 
               + f" have {os.getcwd()}, run as `python run_experiment.py`?"))
     parser = argparse.ArgumentParser(usage=usage_message, epilog=epilog_message)
     parser.add_argument("-m", "--model", required=True, 
                             help="Name of module in models/")
-    parser.add_argument("-mc", "--model_config", default=default_mc, type=str,
-                        required=False,
+    parser.add_argument("-mc", "--model_config", type=str,
+                        required=True,
                             help="Configuration for model")
     parser.add_argument("-t", "--task", required=True, 
                         help="Name of task module in tasks/")
-    parser.add_argument("-tc", "--task_config", 
-                        default=default_tc, required=False,
-    help="Configuration for task")
+    parser.add_argument("-tc", "--task_config", required=True,
+                        help="Configuration for task")
     parser.add_argument("-n", "--num_runs", type=int, required=True, 
                         help="Number of runs to execute")
     parser.add_argument("-d", "--output_directory", required=False,
@@ -216,7 +209,7 @@ if __name__ == "__main__":
                 help="Where to write output files, will create all directories")
     parser.add_argument("-l", "--limit_num_rubrics", type=int)
     parser.add_argument("-et", "--use_earliest_time_stamp", action="store_true",
-                        help="Creates time stamp: 0001-01-01_00-00-00")
+                        help="Creates time stamp: 0001-01-01_00-00-00. Will overwrite previous run.")
     command_line_args = parser.parse_args()
     date = datetime.now()
     if command_line_args.use_earliest_time_stamp:
@@ -232,4 +225,4 @@ if __name__ == "__main__":
     command_line_args_d['task_config_in_filename'] =\
         command_line_args_d['task_config']['shots']
     out_dir = run(command_line_args_d, date_str=datetime_string)
-    print("Run successful, run `python evaluate.py -d {out_dir}")
+    print(f"Run successful, run `python evaluate.py -d {out_dir}")
