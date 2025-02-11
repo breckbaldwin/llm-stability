@@ -150,9 +150,9 @@ gpt-4o {'temperature': 0.0, 'seed': 12, 'top_p_k': 0.0} professional_accounting 
 
 ```
 
-Next in the output are problems encountered while parsing the LLM return strings for the answers. All our tasks are multiple choice but the LLMs often return varied answers that need to be addressed--look for a follow on paper for answer parsing. 
+Next in the output are problems encountered while parsing the LLM return strings for the answers. All our tasks are multiple choice but the LLMs often return varied answers that need to be addressed--look for a follow-on paper for answer parsing. 
 
-The form of a failed parse report is the count of failed parses, here '0', with a description of the failure: `Blown UP found gpt-4o professional_accounting 15 0` which is model 'gpt-4o' from rubric (question/answer pair from the task) #15 from run #0. 
+The form of a failed parse report is the count of failed parses, here '0' because computer scientists count from 0, with a description of the failure: `Blown UP found gpt-4o professional_accounting 15 0` which is model 'gpt-4o' from rubric (question/answer pair from the task) #15 from run #0. 
 
 ```
 ------answer issue-----0---
@@ -164,14 +164,27 @@ Next we see what the LLM answered with:
 
 ```
 
-Response: The type of audit evidence that provides the least assurance of reliability is typically the one that is generated internally by the client, as opposed to being obtained from an independent external source. In this case, option (B) "Prenumbered receiving reports completed by the client’s employees" is the least reliable because it is prepared internally and is subject to the client's internal controls and potential biases. 
+Response: The type of audit evidence that provides the least assurance of reliability 
+is typically the one that is generated internally by the client, as opposed to being 
+obtained from an independent external source. In this case, option (B) "Prenumbered 
+receiving reports completed by the client’s employees" is the least reliable because it 
+is prepared internally and is subject to the client's internal controls and potential 
+biases. 
 
-In contrast, options (A), (C), and (D) involve evidence that is either obtained from external sources or involves third-party verification, which generally provides higher assurance of reliability.
+In contrast, options (A), (C), and (D) involve evidence that is either obtained from 
+external sources or involves third-party verification, which generally provides higher 
+assurance of reliability.
 ```
 So the answer parser is challenged to figure out what the answer is and fails. 
 The rubric itself (question and answer) is supplied next to help figure out what is going on:
 
-```Rubric: {'input': 'Which of the following types of audit evidence provides the least assurance of reliability?\n(A) Receivable confirmations received from the client’s customers.. (B) Prenumbered receiving reports completed by the client’s employees.. (C) Prior months’ bank statements obtained from the client.. (D) Municipal property tax bills prepared in the client’s name.. ', 'target': '(B)'}
+```Rubric: 
+{'input': 'Which of the following types of audit evidence provides the least 
+assurance of reliability?\n(A) Receivable confirmations received from the client’s 
+customers.. (B) Prenumbered receiving reports completed by the client’s employees.. (C) 
+Prior months’ bank statements obtained from the client.. (D) Municipal property tax bills 
+prepared in the client’s name.. ', 
+'target': '(B)'}
 ```
 The answer for this data is the target, or `{'target': '(B)'}`. 
 
