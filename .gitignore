@@ -5,3 +5,5 @@ mlruns
 local_runs
 tmp
 venv/
+evaluation_output.csv
+experiments/v3/runs
