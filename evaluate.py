@@ -1,26 +1,22 @@
-import itertools
-import matplotlib.pyplot as plt
-import numpy as np
-import sys
-import os
-import pandas as pd
-import pandas
 import argparse
 import glob
-import json
-from collections import defaultdict
-from typing import Callable
 import importlib
-from scipy.stats import bootstrap
+import itertools
+import json
+import os
 import random
 import re
+import sys
+from collections import defaultdict
+from typing import Callable
+import pandas as pd
 
 sys.path.append(os.getcwd())
 
 """
-Evaluation for code for most experiments. 
+Evaluation for code for experiments. 
 
-Runs a given experiment as configured by command line parameters. 
+Evaluates an experiment as configured by command line parameters. 
 
 @authors Breck Baldwin
 
@@ -45,20 +41,6 @@ TASKS = ['high_school_european_history', 'college_mathematics',
          'geometric_shapes', 'navigate', 'professional_accounting', 
          'logical_deduction', 'ruin_names', 'public_relations']
 SHOTS = ['0-shot', 'few_shot']
-
-def bootstrap():
-    import numpy as np
-    import math
-    from helper_functions import parse_file_name
-
-    ci_95 = bootstrap((data,), np.mean, n_resamples=2000, 
-                      confidence_level=0.95,
-            random_state=7)
-    low, high = ci_95.confidence_interval
-    if math.isnan(low):
-        low, high = np.mean(data), np.mean(data)
-    print(f"Model: {model}, Task: {task}, 95% CI: ({low=:.3f},{high=:.3f}), Mean: {np.mean(data)=:.3f}")
-
 
 def load_runs(directory, old_format=False) -> pd.DataFrame:
     """
@@ -288,11 +270,9 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
         result_s = pd.Series(result_d)
         results = \
             pd.concat([results, result_s.to_frame().T],  ignore_index=True)
-        #print("ERRORS:")
-        #print(errors)
         
-        print((f"{len(seen_errors.keys())} rubrics had parsing problems for"
-        + f" {len(task_x_rubric)} task x rubrics for {total_evals} total"
+        print((f"{len(seen_errors.keys()):,} rubrics had parsing problems for"
+        + f" {len(errors):,} task x rubrics for {total_evals:,} total"
         + f" evaluations"))
     return results, data_df, errors
     
@@ -305,13 +285,9 @@ if __name__ == "__main__":
                         required=False,
                         default=False,
                         help="Evaluate old run format from v2 paper")
-    #parser.add_argument("-g", "--graph_location", required=True,
-    #                    help="path/filename.png to write graph to. ")
     command_args = parser.parse_args()
     data_df = load_runs(command_args.directory, command_args.eval_orig)
     
     (eval_df, dict, errors) = evaluate(data_df)
     print(eval_df)
     eval_df.to_csv("evaluation_output.csv")
-
-    #graph(epsilons, diffs, args.graph_location)
