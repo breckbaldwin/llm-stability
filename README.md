@@ -1,79 +1,293 @@
 # LLM Stability Project:
 
 Public repo: https://github.com/Comcast/llm-stability
-Comcast repo: https://github.com/comcast-explainable-ai-lab-group/llm_stability
 
+v3.0
 
-vNext.0 In development
+## 1. Supporting software and data
 
-## Supporting software and data
+This repo contains source code and data used to conduct the experiments reported in the papers below.
 
-This repo contains source code and data used to conduct our experiments. There are some naming conventions around versions of software/papers.
+- v1.0 is the original ArXive paper v1.0 Submitted July 26, 2024 ArXiv released August 6, 2024: https://arxiv.org/abs/2408.04667v1. There is no support for this paper in the repo.
+- v2.0 (v2.0 https://arxiv.org/abs/2408.04667v2) is a superset of the v1.0 work and where effort has been made to release software and data in a reproducible way. The release was a retrofit onto an existing project. The repo has a release 1.0 that reflects this version of the work--apologies for the confusing naming. 
+- v3.0 extends the v2.0 experiments and analysis and has a completely new code base that focuses on reproducibility and clarity behind the experiments in the code base.  
 
-- v1.0 is the original ArXive paper v1.0 Submitted July 26, 2024 ArXiv released August 6, 2024: https://arxiv.org/abs/2408.04667v1. There is very little support for this paper in the repo or write up.
-- v2.0 (v2.0 https://arxiv.org/abs/2408.04667v2) is a superset of the v1.0 work and where effort has been made to release software and data in a reproducable way. However the release was a retrofit onto an existing project. 
-- vNext.0 is the next version that attempts to be a stronger effort for reproducability and clarity in the code base. There are two major efforts:
-    + Getting the v2.0 paper published somewhere. There are planned minor extensions to the v2.0 paper for resubmittal. 
-    + Explore solutions to non-determinism in follow on work. 
+## 2. Overview 
 
-Below is vNext.0 work. 
+The repo contains raw data from experiment runs, software to run experiments and evaluate the experiments. In more detail:
 
-### Overview 
+- Data: The tar files `experiments/v2/runs.tgz` contain data used to generate Table 2 in `LLM_Stability_paper_v2.0.pdf` and was created with the v1.0 release of the repo infrastructure. The data `experiments/v3/runs.tgz` recreates the v2 data with the `run_experiment.py` but with 10 runs.
+- Running experiments: The script `run_experiment.py` loads a model, task and produces time stamped data in the `local_runs` directory. Details below. 
+- Evaluation: The script `evaluate.py` parses the output of the experiment runs and calculates model performance which results in an `evaluation_output.csv` file which is a superset of the features of Table 2 in the v2 paper. Details below.
+- The `models` directory contains Python scripts that wrap the designated models. The model scripts are responsible for:
+    + Running task rubrics (questions/answers) given a configuration that controls `temperature`, `top_p/k` etc..
+    + Applying a rewrite function that rewrites questions before question answering.
+- The `tasks` directory contains scripts that wrap access to the 8 tasks used in the evaluation. They wrap Hugging Face datasets and are responsible for: 
+    + Generating training examples for few shot runs
+    + Translation of multiple choice answers to letter based multiple choice.
+    + Providing functions that return:
+        - `raw_fn`: Raw LLM response used for total agreement rate raw (TARr)
+        - `answer_fn`: Parsed answer from raw output for total agreement rates answer (TARa).
+        - `correct_fn`: Whether the answer was correct or not for accuracy reporting.
 
-The project splits cleanly between running LLMs against benchmark tasks which output to
- .csv files and then evaluating those files. There are recreations of the v2 experiments in `experiments/v2_few_shot/`. There is a standardized evaluation script:
+## 3. Setting up Python
 
-- `evaluate.py` that takes generated csv files from prior runs and produces a table output similar to Table 2 in https://arxiv.org/abs/2408.04667v2 in the file `evaluation_output.csv`. There is example .csv in the repo which can be evaluated by running:
-```shell
-python evaluate.py -d experiments/example/0001-01-01_00-00-00/
+It is strongly recommended that you set up a virtual environment to evaluate or run experiments. There are many ways to achieve this which are operating system dependent, the way we do it is using the command line is:
+
+- Install miniconda (https://docs.anaconda.com/miniconda/)
+- `conda create -n llms python=3.11`
+- `conda activate llms`
+
+We are only using miniconda to manage our environment, we will use `pip` to install packages. 
+
+- `pip install -r requirements.txt`
+
+Now you should have an functioning environment to use. 
+
+### 3.1 Setup to run evaluation
+
+Run the following test to be sure the environment functions properly, note that these tests don't use external credentials. 
+
+```
+pytest tests/test_evaluate.py
+pytest tests/test_tasks.py 
+pytest tests/test_helper_functions.py 
 ```
 
-- `run_from_experiment_output.py` takes existing experiment output and will rerun from the configuration information in the output files. The only degree of freedom is the LLM used to run the task. If the hosted LLMs change then the experiments will not be reproducable. Note that the script is included for completeness sake and the data is hard-coded into the script. Example run is:
+## 3.2 Setup to run models
+
+If you only want to evaluate existing output then you can ignore setting up the models and go to 4.  
+
+Our experiments used hosted models which require credentials that you supply to run.
+For example the `models/gpt-4o.py` script has the configuration:
 
 ```
-python run_from_experiment_output.py
+AzureOpenAI(
+                azure_endpoint=os.environ["AZURE_ENDPOINT_GPT_4_0"],
+                api_key=os.environ["OPENAI_GPT4_KEY"],
+                api_version="2024-04-01-preview",
+                azure_deployment="AppliedAI-gpt-4o",
+            )
+
+```
+You will have to set environment variables for `AZURE_ENDPOINT_GPT_4_0`, `OPENAI_GPT4_KEY` in the standard fashion of your operating system or you can put a
+`.env` file in your home directory in the format:
+
+```
+AZURE_ENDPOINT_GPT_4_0 = "https://<your endpoint here>.openai.azure.com"
+OPENAI_GPT4_KEY="<your key here>"
+```
+As you run additional models you will likely have to provide specific credentials and endpoints. 
+
+WARNING: It is very easy to mistakenly push keys to repos so we strongly recommend not hard coding credentials into model scripts or putting a `.env` file in the repo directory--although there is a `.gitignore` that will not act upon a `.env` file. 
+
+To verify that your credentials work there are tests for GPT-4o and GPT-3.5 Turbo. 
+Add to these tests for models you wish to run. Below we test the individual LLMs:
+
+- `pytest tests/test_models.py::test_gpt_4o` 
+- `pytest tests/test_models.py::test_gpt_35_turbo`
+
+## 4. Evaluate with `evaluate.py`
+
+### 4.1 Extract previous run data as supplied in repo
+This repo contains raw output in v2 data in `experiments/v2/runs.tgz` and v3 data in `experiments/v3/runs.tgz`. The v3 data has more runs and covers the same basic experiments as the v2 data so we use that. Steps to process:
+
+- Uncompress and unarchive either via your operating system or from the linux style command line:
+    ```
+    > cd experiments/v3
+    > tar -xfzf runs.tgz
+    ```
+- This will create a directory `runs` with the following structure:
+
+    ```
+    > cd runs/
+    > ls
+    gpt-35-turbo-0.0-college_mathematics-0_2024-12-28_17-04-16/
+    gpt-35-turbo-0.0-college_mathematics-few_2024-12-28_16-42-30/
+    ```
+
+- The directory name convention is "<model>-<top_p_k>-<task>-<0 or few>-<date run started>"
+Inside each directory are the .csv files from each run:
+
+    `gpt-35-turbo-0.0-college_mathematics-0_2024-12-28_17-04-16/gpt-35-turbo-0.0-college_mathematics-0-0.csv`
+
+    The same naming convention is applied to the file with the addition of a "-<[0-9]>.csv". For v3 data, there will be 10 runs numbered from 0-9. 
+
+### 4.2 Run evaluation.py
+
+The evaluation script is run by specifying the root of the directory where .csv files exist as supplied to the -d flag. It will recursively seek all the .csv files and attempt to evaluate them:
+
+```
+python evaluate.py -d experiments/v3/runs/
+```
+
+There is a mass of output typically generated that reports on answer parsing failures. Rerunning a single experiment directory makes this a bit more manageable to describe. 
+
+```
+> python evaluate.py -d experiments/v3/runs/gpt-4o-0.0-professional_accounting-0-2024-12-14_14-31-08
+
+Trying experiments/v3/runs/gpt-4o-0.0-professional_accounting-0-2024-12-14_14-31-08/gpt-4o-0
+.0-professional_accounting-0-8.csv
+Trying experiments/v3/runs/gpt-4o-0.0-professional_accounting-0-2024-12-14_14-31-08/gpt-4o-0
+.0-professional_accounting-0-9.csv
+Trying experiments/v3/runs/gpt-4o-0.0-professional_accounting-0-2024-12-14_14-31-08/gpt-4o-0
+.0-professional_accounting-0-1.csv
+Trying experiments/v3/runs/gpt-4o-0.0-professional_accounting-0-2024-12-14_14-31-08/gpt-4o-0.0-professional_accounting-0-0.csv
+Trying experiments/v3/runs/gpt-4o-0.0-professional_accounting-0-2024-12-14_14-31-08/gpt-4o-0.0-professional_accounting-0-2.csv
+Trying experiments/v3/runs/gpt-4o-0.0-professional_accounting-0-2024-12-14_14-31-08/gpt-4o-0.0-professional_accounting-0-3.csv
+Trying experiments/v3/runs/gpt-4o-0.0-professional_accounting-0-2024-12-14_14-31-08/gpt-4o-0.0-professional_accounting-0-7.csv
+Trying experiments/v3/runs/gpt-4o-0.0-professional_accounting-0-2024-12-14_14-31-08/gpt-4o-0.0-professional_accounting-0-6.csv
+Trying experiments/v3/runs/gpt-4o-0.0-professional_accounting-0-2024-12-14_14-31-08/gpt-4o-0.0-professional_accounting-0-4.csv
+Trying experiments/v3/runs/gpt-4o-0.0-professional_accounting-0-2024-12-14_14-31-08/gpt-4o-0.0-professional_accounting-0-5.csv
+
+```
+Above are all the .csv files read in. 
+
+The next line shows the parsed data from the .csv file that indicates what experiment is being run and the corresponding configuration--this should match the relevant portions of the file name--note that the v3 data filenames are for human consumption only, relevant information is pulled from the csv file. The v2 data does pull information from the file name, see the `evaluate.py::load_runs()` function for what is going on there:
+
+```
+gpt-4o {'temperature': 0.0, 'seed': 12, 'top_p_k': 0.0} professional_accounting {'prompt_type': 'v2', 'shots': 0}
 
 ```
 
-- `run_experiment.py` will take an LLM, a task to evaluate and produce files for evaluation. Note that you will have to supply environment variables with endpoints and credentials for the models. This is covered in `models/README.md`. An example invocation is:
+Next in the output are problems encountered while parsing the LLM return strings for the answers. All our tasks are multiple choice but the LLMs often return varied answers that need to be addressed--look for a follow on paper for answer parsing. 
+
+The form of a failed parse report is the count of failed parses, here '0', with a description of the failure: `Blown UP found gpt-4o professional_accounting 15 0` which is model 'gpt-4o' from rubric (question/answer pair from the task) #15 from run #0. 
+
+```
+------answer issue-----0---
+Blown UP found gpt-4o professional_accounting 15 0
+```
+Blown UP (uniqueness presupposition) means that more than one answer was found.
+
+Next we see what the LLM answered with:
 
 ```
 
-python run_experiment.py -m gpt-35-turbo -mc '{"temperature":0.0}' -t navigate -tc '{"prompt_type": "v2", "shots":"few"}' -n 5
+Response: The type of audit evidence that provides the least assurance of reliability is typically the one that is generated internally by the client, as opposed to being obtained from an independent external source. In this case, option (B) "Prenumbered receiving reports completed by the client’s employees" is the least reliable because it is prepared internally and is subject to the client's internal controls and potential biases. 
+
+In contrast, options (A), (C), and (D) involve evidence that is either obtained from external sources or involves third-party verification, which generally provides higher assurance of reliability.
 ```
-- This will write 5 csv files to the directory `local_runs/<timestamp>/gpt-35-turbo-0.0-navigate-few-<run number>.csv` and `python run_experiment.py -h produces helpful output. 
+So the answer parser is challenged to figure out what the answer is and fails. 
+The rubric itself (question and answer) is supplied next to help figure out what is going on:
 
-The data from the experiment runs reported in v1.0 (few-shot) and the additional runs for various alternate configurations (few-shot, 0-shot and fine-tuned) in v2.0 are in `release_data.tgz` which can be uncompressed with the command line utility `tar -xvzf release_data.tgz` on linux/osx or which results in a folder `release_data`. GUI window managers also typcially can extract the compressed data as well by double clicking on the file. It has sub folders
-* `release_data/few_shot` which are the results from the few shot runs repeated 5 times. This contains the preliminary data that setup the paper. 
-* `release_data/20_run` which is the 20 run example used to help characterize the shape of score variations.
-* `release_data/0-shot` is a collection of 5 run evaluations with no training examples provided.
-* `release_data/fine-tuned-few-shot` contain the results of fine tuning several models on some of the tasks. 
+```Rubric: {'input': 'Which of the following types of audit evidence provides the least assurance of reliability?\n(A) Receivable confirmations received from the client’s customers.. (B) Prenumbered receiving reports completed by the client’s employees.. (C) Prior months’ bank statements obtained from the client.. (D) Municipal property tax bills prepared in the client’s name.. ', 'target': '(B)'}
+```
+The answer for this data is the target, or `{'target': '(B)'}`. 
 
-The above data represents 520 runs ranging from 100 to 250 questions each and as such there remains a great deal of potential analysis over the experiments we ran but did not conduct. We release this data in the hopes of others taking advantage of a rather expensive and time consuming effort. 
+Next is a report on how many times the same exact LLM response happens so it does for runs #1, and #2. 
+
+```
+
+Repeat 1 for rubric id 15
+Repeat 2 for rubric id 15
+
+```
+The other 8 runs for this rubric did not have parsing issues. 
+
+The last line of output summarized the overall parser performance:
+
+`19 rubrics had parsing problems for 76 task x rubrics for 2820 total evaluations`
+
+The line indicates that 19 rubrics out of 282 rubrics had at least one parsing failure and the total count of parsing failures is 76 out of 2820 total runs. The counts and reporting will span all runs under the directory designated by the -d flag. For example:
+
+```
+> python evaluate.py -d experiments/v3/runs/
+.....
+264 rubrics had parsing problems for 2,003 task x rubrics for 66,280 total evaluations
+```
+
+We don't worry too much about missed parses if we are in the range of expected performance for the task since we are more interested in the stability of the raw LLM results but it is good to know and we are pursuing related research on robust answer parsing.
+- 
+
+### 4.3 View `evaluation_output.csv` 
+
+Open `evaluation_output.csv` in your favorite spreadsheet. The column labels are:
 
 
-## Setup
+- model: Model name from 'model' column of .csv
+- model_config: Configuration pulled from column 'model_config' of .csv
+- task: Task name pulled from 'task' of .csv
+- task_config: Configuration pulled from 'task_config' of .csv
+- TACr: Total agreement (Python string equivalence) count for raw data across @N runs
+- TARr: Total agreement rate raw, TACr/num_questions
+- correct_count_per_run: List @N long of correct answers per run
+- correct_pct_per_run: Percent correct per run
+- num_questions: How many rubrics in task
+- N: @N number of repeat runs
+- best_possible_count: Count question correct if it was correctly answered on any run
+- best_possible_accuracy: best_possible_count/N
+- worst_possible_count: Count question incorrect if it was incorrectly answered on any run
+- worst_possible_accuracy: worst_possible_count/N
+- spread: best_possible_accuracy - worst_possible_accuracy
+- bootstrap_counts: Sample with replacement 10 times and count correct
+- bootstrap_pcts: boostrap_counts/num_questions
+- date: Date of run
 
-Our LLMs were hosted on a variety of services that are specific to our company. But it should be easy to point the LLMs at the appropriate hosted endpoints. Look at 
-`
+## 5. Generate new runs
 
+Running your own configurations/experiments requires that you pass the tests for the LLMs you want to use in section 3.1 and 3.2. Once the tasks/models are working then it should be trivial to run with different configurations. You are strongly encouraged to use the existing code base to run and evaluate to maintain consistency with other experiments. 
 
-In addition there is a `requirements.txt` file that details the modules needed to run the software. Typically one creates a Python virtual environment and then run `pip install -r requirements.txt` for installation. 
+Three basic entry points exist to run data:
+- Command line: `python run_experiment.py -m gpt-4o -t navigate -n 2 -l 3` wraps command line configuration options and calls below `run(....)`
+- Function call to `run_experiment.py::run(...)` which does file system checks, reads/writes to disk based on parameterization and runs one task against one model N times by calling `run_model()`. The code in `run_table_2.py` shows how to use this function to run a bigger experiment and not re-run experiments that don't need to be run. 
+- Function call to `run_experiment.py::run_model(...)` which is where a single task is run N times against one task and output written to specified file. The script `run_from_experiment_output.py` uses this function to rerun experiments from the output .csv alone as a proof of reproducibility if the Hugging Face data source goes away.
 
-## Explanations for the files
+### 5.1 Creating different models/ or tasks/
 
-The files below are offered more in the hopes of clarity about what was done exactly for the purposes of reproducability than serving as a foundation for related work. The processes are just not that complex and our implementation not intended to live beyond the needs of the experiments but we have tried to make the code and steps we took as clear as possible. 
+ If you are adding your own model then use as a template  an existing model and implement it. The same applies if you wish to add your own task, use an existing task as a template and add it to the `tasks` directory and unit test it. 
 
-- `main.py`: This is the main file to run the LLMs. It has 4 named parameters:
-  - `task`: which is to specify a task which can be any of the followings: mmlu_professional_accounting,  bbh_geometric_shapes, bbh_logical_deduction_three_objects, bbh_navigate, bbh_ruin_names, mmlu_college_mathematics, mmlu_high_school_european_history
-  - `model`: the name of the model such as gpt-3.5-turbo, gpt-4o, or llama-3-70b
-  - `num_few_shot`: number of few shot examples being used, they are set in the paper as follows for the few shot examples : bbh:3, mmlu:5. There are also 0-shot runs. 
-  - `experiment_run`: this is to keep track of different runs, 5 for most tasks with some runs at 20 to characterize the shape of the accuracy distribution.
-  - Example call: `python main.py  --model gpt-3.5-turbo --task mmlu_professional_accounting --experiment_run 0 --num_fewshot 4`. Running this will create a file `gpt-3.5-turbo_mmlu_professional_accounting_0.csv` that is a sibling to `main.py`. Note that the `num_fewshot` parameter was not included in the output filename convention and was added by hand later. We suggest collecting runs into an appropriately named folder as done in our `release_data` folder.
-- `helper_functions.py`: Helper functions here that are being used in other files.
-- `postprocess_responses.py`: We encountered parsing complexities in extracting answers.  This file after a run is done to get rid of some of the parsing issues but sometimes manual checking is inevitable. 
-- `calculate_statistics.py`: This calculates the reported metrics after all parsings are done. An example call is: `python calculate_statistics.py release_data/few_shot fewshot_scores` which creates the indicated folder if needed and writes the files:
-    + `fewshot_scores/detail_accuracy.csv`: Parsed outputs for each model/task/run
-    + `fewshot_scores/low_med_high.csv` Accuracy, low, median, high
-    + `fewshot_scores/TARa.csv` Total agreement rate answer results
-    + `fewshot_scores/TARr.csv` Total agreement rate raw results
+### 5.2 Running from command line `run_experiment.py`
+ 
+The command line gives fairly good access different ways of running the evaluation without writing code. There is fairly decent help if you run `python run_experiment.py -h`:
+
+```
+usage: python run_experiment.py -m gpt-4o -mc '{"temperature":0.0, "seed": 12, "top_p_k": 0.0}' -t navigate -tc '{"prompt_type": "v2", "shots": 0}' -n 2 -l 3 -et
+
+options:
+  -h, --help            show this help message and exit
+  -m MODEL, --model MODEL
+                        Name of module in models/
+  -mc MODEL_CONFIG, --model_config MODEL_CONFIG
+                        Configuration for model
+  -t TASK, --task TASK  Name of task module in tasks/
+  -tc TASK_CONFIG, --task_config TASK_CONFIG
+                        Configuration for task
+  -n NUM_RUNS, --num_runs NUM_RUNS
+                        Number of runs to execute
+  -d OUTPUT_DIRECTORY, --output_directory OUTPUT_DIRECTORY
+                        Where to write output files, will create all directories
+  -l LIMIT_NUM_RUBRICS, --limit_num_rubrics LIMIT_NUM_RUBRICS
+  -et, --use_earliest_time_stamp
+                        Creates time stamp: 0001-01-01_00-00-00. Will overwrite previous
+                        run.
+
+```
+
+The usage example runs standard configurations for the model/task and runs 3 rubrics from the navigate task two times. Output is:
+
+```
+python run_experiment.py -m gpt-4o -mc '{"temperature":0.0, "seed": 12, "top_p_k": 0.0}' -t navigate -tc '{"prompt_type": "v2", "shots": 0}' -n 2 -l 3 -et
+No existing file, running gpt-4o-0.0-navigate-0
+Model loaded
+Limiting test to first 3 rubrics
+Data loaded
+Making output directories if necessary local_runs/gpt-4o-0.0-navigate-0_0001-01-01_00-00-00
+File system ready for run
+Running 0
+100%|█████████████████████████████████████████████████████████| 3/3 [00:06<00:00,  2.15s/it]
+*** Wrote local_runs/gpt-4o-0.0-navigate-0_0001-01-01_00-00-00/gpt-4o-0.0-navigate-0-0.csv
+Running 1
+100%|█████████████████████████████████████████████████████████| 3/3 [00:09<00:00,  3.07s/it]
+*** Wrote local_runs/gpt-4o-0.0-navigate-0_0001-01-01_00-00-00/gpt-4o-0.0-navigate-0-1.csv
+Run successful, run `python evaluate.py -d local_runs/gpt-4o-0.0-navigate-0_0001-01-01_00-00-00
+
+```
+
+The last line gives you the command to run the `evaluation.py` script. Note that the `run_experiment.py` will not run if there is the same configuration in the destination directory as determined by the file name independent of the timestamp. Run with the command line `-et` option to overwrite previous configuration equivalent runs or just delete the blocking directory from the output directory.
+
+### 5.3 Running from output .csv files
+
+For reproducibility reasons there is sufficient data in the output files to rerun the experiments. 
+
+- `run_from_experiment_output.py` takes existing experiment output and will rerun from the configuration information in the output files. The only degree of freedom is the LLM used to run the task. If the hosted LLMs change then the experiments will not be reproducible.  
