@@ -31,18 +31,6 @@ To test single model, e.g., gpt-35-turbo:
  * limitations under the License.
 """
 
-
-# def test_llama3_2_3b_q4_km():
-#     model_name = "llama3-2-3b-q4-km"
-#     llm = importlib.import_module(f'models.{model_name}')
-#     test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but need to run a unit test."}] #be polite to our overlords
-#     result, run_info = llm.run(test_prompt, {'temperature':1.0,
-#                                             'seed': 13,
-#                                             'top_p_k': 0.0})
-#     assert len(result) > 10
-
-
-
 def test_gpt_35_turbo():
     model_name = 'gpt-35-turbo'
     llm = importlib.import_module(f'models.{model_name}')
