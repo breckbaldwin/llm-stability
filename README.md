@@ -229,7 +229,7 @@ Open `evaluation_output.csv` in your favorite spreadsheet. The column labels are
 Running your own configurations/experiments requires that you pass the tests for the LLMs you want to use in section 3.1 and 3.2. Once the tasks/models are working then it should be trivial to run with different configurations. You are strongly encouraged to use the existing code base to run and evaluate to maintain consistency with other experiments. 
 
 Three basic entry points exist to run data:
-- Command line: `python run_experiment.py -m gpt-4o -t navigate -n 2 -l 3` wraps command line configuration options and calls below `run(....)`
+- Command line: `python run_experiment.py -m gpt-4o -mc '{"temperature":0.0, "seed": 12, "top_p_k": 0.0}' -t navigate -tc '{"prompt_type": "v2", "shots": 0}' -n 2 -l 3 -et` wraps command line configuration options and calls below `run(....)`
 - Function call to `run_experiment.py::run(...)` which does file system checks, reads/writes to disk based on parameterization and runs one task against one model N times by calling `run_model()`. The code in `run_table_2.py` shows how to use this function to run a bigger experiment and not re-run experiments that don't need to be run. 
 - Function call to `run_experiment.py::run_model(...)` which is where a single task is run N times against one task and output written to specified file. The script `run_from_experiment_output.py` uses this function to rerun experiments from the output .csv alone as a proof of reproducibility if the Hugging Face data source goes away.
 
