@@ -1,10 +1,7 @@
 from openai import AzureOpenAI, OpenAI
 import os
-import yaml
 import pandas as pd
 import random
-import numpy as np
-import torch
 from datasets import Dataset
 from dotenv import load_dotenv
 import re
