@@ -237,6 +237,8 @@ Three basic entry points exist to run data:
 
  If you are adding your own model then use as a template  an existing model and implement it. The same applies if you wish to add your own task, use an existing task as a template and add it to the `tasks` directory and unit test it. 
 
+ There are `models/README.md` and `tasks/README.md` to give more information about the design and what config options like `{"prompt": "v2"}` mean. 
+
 ### 5.2 Running from command line `run_experiment.py`
  
 The command line gives fairly good access different ways of running the evaluation without writing code. There is fairly decent help if you run `python run_experiment.py -h`:
