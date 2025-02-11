@@ -31,7 +31,7 @@ def test_A_D():
         'task':['professional_accounting'] * 2,
         'task_config': [{'prompt_type': 'v2'}] * 2,
         'run':list(range(2)),
-        'model':['m1'] * 2,
+        'model':['gpt-4o'] * 2,
         'model_config':[{}] *  2,
         'rubric_id':[1] * 2,
         'response':['(A)', '(A)'],
