@@ -67,6 +67,7 @@ def run_model(llm,
         llm_responses = []
         ground_truths = []
         questions = []
+        modified_questions = []
         prompts = []
         model_configs = []
         rubrics = [] # entire test payload as serialized json
@@ -93,9 +94,10 @@ def run_model(llm,
             except openai.BadRequestError as e:
                 response = "LLM Error"
                 print(f"*****PROCESSING ERROR {e} for {rubric}")
-            prompts.append(json.dumps(prompt))
+            prompts.append(json.dumps(run_config['prompt']))
             rubrics.append(json.dumps(rubric))
             questions.append(rubric['input'])
+            modified_questions.append(run_config['prompt'][0]['content'])
             ground_truths.append(rubric['target'])
             model_configs.append(json.dumps(model_config))
             llm_responses.append(response)
@@ -114,6 +116,7 @@ def run_model(llm,
                             'rubric': rubrics,
                             'rubric_id': rubric_ids,
                             'question': questions, 
+                            'modified_questions': modified_questions,
                             'gt': ground_truths,
                             'prompt':prompts, 
                             'run': runs,
