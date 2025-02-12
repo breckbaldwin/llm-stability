@@ -148,7 +148,6 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
     configs = get_experiment_configs(data_df)
     results = pd.DataFrame()
     errors = []
-    seen_errors = defaultdict(int)
     total_evals = 0
     task_x_rubric = set()
     
@@ -175,6 +174,7 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
         num_questions = len(rubric_ids)
         runs_accum = []
         for id in rubric_ids:
+            seen_errors = defaultdict(int)
             task_x_rubric.add(f"{task}x{id}")
             question_df = exp_df[exp_df['rubric_id'] == id]
             #question_df = question_df.reset_index(drop=True)
@@ -202,19 +202,18 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
                             print(f"{error} {row['run']}")
                             print(f"Response: {row['response']}")
                             print(f"Rubric: {row['rubric']}")
-
                             errors.append(f"No answer found {model} {task} {id} {row['run']}")
                             answer.add(idx) # No answer will always fail TARa
-                        print(f"Repeat {seen_errors[error]} for rubric id {id}")
+                        print(f"No Answer Found: Repeat {seen_errors[error]} for rubric id {id}")
                         errors.append(f"No answer found {model} {task} {id} {row['run']}")
                         continue # cannot be correct so continue
                     else:
                         data_df.loc[idx,'parsed_answer'] = parsed_answer
                         answer.add(parsed_answer)
-                except LookupError as e:
+                except LookupError as e: #LookupError is 
                     answer.add(idx) # Blown UP is also a failure of TARa
                     data_df.loc[idx,'parsed_answer'] = "Blown UP"
-                    error = f"Blown UP found {model} {task} {id}"
+                    error = f"Blown UP found {model} {task} {id} Answer: {e}"
                     seen_errors[error] += 1
                     if seen_errors[error] == 1:
                         print(f"------answer issue-----{len(errors)}---")
@@ -222,7 +221,7 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
                         print(f"Response: {row['response']}")
                         print(f"Rubric: {row['rubric']}")
                     errors.append(f"Blown UP {model} {task} {id} {row['run']}")
-                    print(f"Repeat {seen_errors[error]} for rubric id {id}")
+                    print(f"Blown UP: Repeat {seen_errors[error]} for rubric id {id}")
                     continue # can't be correct so continue
                 if task_module.correct_fn(row, task_config):
                     correct[row['run']] += 1
