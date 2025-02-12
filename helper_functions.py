@@ -63,8 +63,8 @@ None of the given options are correct. The dimension that cannot be the dimensio
 
     """
     matches = set()
-    intent_backoff = ['answer is', 'boxed choice', 'exact_word', 'case_insensitive',    
-                      'sub_string', 'llm'] #llm unused
+    intent_backoff = ['answer is', 'boxed choice', 'exact_word', 
+                     'case_insensitive', 'sub_string', 'llm'] #llm unused
     sentences = row['response'].split('\n')
     salience_ranking = []
     salience_ranking.append(sentences[-1:]) # last sentence
