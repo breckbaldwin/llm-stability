@@ -274,6 +274,14 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
         + f" {len(errors):,} task x rubrics for {total_evals:,} total"
         + f" evaluations"))
     return results, data_df, errors
+
+def format_to_pct(cell):
+    if isinstance(cell, float):
+        return f"{cell:.1%}"
+    elif isinstance(cell, list):
+        return [f"{x:.1%}" if isinstance(x, float) else x for x in cell]
+    else:
+        return cell
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -284,9 +292,18 @@ if __name__ == "__main__":
                         required=False,
                         default=False,
                         help="Evaluate old run format from v2 paper")
+    parser.add_argument("-pp", "--pretty_print_percentages", required=False,
+                        default=True,
+                        help="Print ratios as percentage with one digit of precision")
     command_args = parser.parse_args()
     data_df = load_runs(command_args.directory, command_args.eval_orig)
     
     (eval_df, dict, errors) = evaluate(data_df)
+    if command_args['pretty_print_percentages']:
+        eval_df = eval_df.map(format_to_pct)
+    
+    #eval_df['correct_pct_per_run'] = eval_df['correct_pct_per_run'].apply(lambda lst: [f"{x:.1%}" for x in lst])
+    #eval_df['bootstrap_pcts'] = eval_df['bootstrap_pcts'].apply(lambda lst: [f"{x:.1%}" for x in lst])
     print(eval_df)
-    eval_df.to_csv("evaluation_output.csv")
+    eval_df.to_csv("stability_eval.csv")
+    
