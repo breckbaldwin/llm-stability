@@ -72,6 +72,7 @@ def test_gpt_4o_rewrite():
                                             'top_p_k': 0.0,
                                             'rewrite_inst': rewrite_inst})
     assert len(run_info['prompt'][0]['content']) > 10
+    assert run_info['prompt'] != test_prompt
     assert run_info['model_name'] == model_name
     assert run_info['temperature'] == 1.0
     assert run_info['seed'] == 13
