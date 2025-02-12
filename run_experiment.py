@@ -186,7 +186,8 @@ def run(run_args: dict, date_str: str) -> str:
 
 if __name__ == "__main__":
     
-    usage_message = "python run_experiment.py -m gpt-4o -mc '{\"temperature\":0.0, \"seed\": 12, \"top_p_k\": 0.0}' -t navigate -tc '{\"prompt_type\": \"v2\", \"shots\": 0}' -n 2 -l 3 -et"
+    usage_message = ("python run_experiment.py -m gpt-4o -mc '{\"temperature\":0.0, \"seed\": 12, \"top_p_k\": 0.0}' -t navigate -tc '{\"prompt_type\": \"v2\", \"shots\": 0}' -n 2 -l 3 -et"
+    +  "\npython run_experiment.py -h shows help message and more options")
 
     epilog_message = "Documentation for project is at: https://github.com/Comcast/llm-stability/blob/main/README.md"
 

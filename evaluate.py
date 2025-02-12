@@ -284,26 +284,34 @@ def format_to_pct(cell):
         return cell
     
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    usage_message = ("python evaluate.py -d local_runs/"
+                     + "\npython evaluate.py -h shows help message and more options")
+
+    epilog_message = "Documentation for project is at: https://github.com/Comcast/llm-stability/blob/main/README.md"
+    
+    parser = argparse.ArgumentParser(usage=usage_message, epilog=epilog_message)
+
     parser.add_argument("-d", "--directory", required=True, 
                             help=("path to data dir to timestamp, e.g., " 
         + "experiments/low_temp/local_runs/10_tasks/2024-11-29_13-49-06/"))
-    parser.add_argument("-eo", "--eval_orig", action="store_true",
+    parser.add_argument("-eo", "--eval_orig", 
+                        action="store_true",
                         required=False,
                         default=False,
                         help="Evaluate old run format from v2 paper")
-    parser.add_argument("-pp", "--pretty_print_percentages", required=False,
-                        default=True,
-                        help="Print ratios as percentage with one digit of precision")
+    parser.add_argument("-npp", "--no_pretty_print_percentages", 
+                        required=False,
+                        default=False,
+                        action="store_true",
+                        help="Disables printing ratios as percentage with one digit of precision, keeps full precision and floats")
     command_args = parser.parse_args()
     data_df = load_runs(command_args.directory, command_args.eval_orig)
     
     (eval_df, dict, errors) = evaluate(data_df)
-    if command_args['pretty_print_percentages']:
+    if not command_args.no_pretty_print_percentages:
         eval_df = eval_df.map(format_to_pct)
     
     #eval_df['correct_pct_per_run'] = eval_df['correct_pct_per_run'].apply(lambda lst: [f"{x:.1%}" for x in lst])
     #eval_df['bootstrap_pcts'] = eval_df['bootstrap_pcts'].apply(lambda lst: [f"{x:.1%}" for x in lst])
     print(eval_df)
     eval_df.to_csv("stability_eval.csv")
-    
