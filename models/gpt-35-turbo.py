@@ -39,6 +39,49 @@ MODEL_NAME = "gpt-35-turbo"
 
 seen_before = {} #cache previous results for run to avoid variation
 
+def apply_rewrite(prompt, config):
+    """
+    Rewrites the content of a given prompt based on a configuration and cache.
+    Args:
+        prompt (list): A list containing a dictionary with the key 'content' representing the original prompt content.
+        config (dict): A dictionary containing configuration parameters for the rewrite process. Expected keys are 'rewrite_inst' (instructions for rewriting), 'temperature', 'seed', and 'top_p_k'.
+        A typical rewrite instruction is: "Please rewrite the below prompt to maximize your understanding of the instruction for processing."
+    Returns:
+        list: A list containing a dictionary with the key 'content' representing the rewritten prompt content.
+        bool: A boolean flag indicating whether the cache was used.
+    Side Effects:
+        Updates the global 'seen_before' dictionary with the original content as the key and the rewritten content as the value.
+        Prints messages indicating whether the cache was used or if the content was rewritten.
+    """
+
+    global seen_before
+    cache_used = False
+    original_content = prompt[0]['content']
+    rewritten_content = None
+    if original_content in seen_before:
+        rewritten_content = seen_before[original_content]
+        print(f"Cache hit '{original_content}' -> '{rewritten_content}'")
+        cache_used = True
+    else: 
+        rewrite_prompt = [
+            {"role": "user",
+                "content": f"{config['rewrite_inst']}\n\n{original_content}"}
+            ]
+        rewrite_response = MODEL.chat.completions.create(
+                messages=rewrite_prompt,
+                model=MODEL_NAME,
+                temperature=config['temperature'],
+                seed=config['seed'],
+                top_p=config['top_p_k'])
+        rewritten_content = rewrite_response.choices[0].message.content
+        print(f"Rewrote '{original_content}' to '{rewritten_content}'")
+        seen_before[original_content] = rewritten_content
+    prompt = [
+            {"role": "user",
+                "content": rewritten_content}
+            ]
+    return prompt, cache_used
+
 def run(prompt: list, config: dict) -> (str):
     """
     Runs a prompt and returns the content portion of the response and 
@@ -52,58 +95,26 @@ def run(prompt: list, config: dict) -> (str):
                       }
     Returns:
        str: payload
-       run_info: {'prompt':str, 
-                  'model_run': 'model_template', 
-                  'config': {'temperature':probability, ...}
-                 }
+       dict: run configuration used--may have rewritten prompt or other mods
     """
-    global seen_before
     cache_used = False
-    temperature = config['temperature']
-    seed = config['seed']
-    top_p = config['top_p_k']
-    rewrite_inst = config.get('rewrite_inst', None)
-    if rewrite_inst is not None:
-        original_content = prompt[0]['content']
-        rewritten_content = None
-        if original_content in seen_before:
-            rewritten_content = seen_before[original_content]
-            print(f"Cache hit '{original_content}' -> '{rewritten_content}'")
-            cache_used = True
-        else: 
-            rewrite_prompt = [
-                {"role": "user",
-                 "content": f"{rewrite_inst}\n\n{original_content}"}
-                ]
-            rewrite_response = MODEL.chat.completions.create(
-                    messages=rewrite_prompt,
-                    model=MODEL_NAME,
-                    temperature=temperature,
-                    seed=seed,
-                    top_p=top_p)
-            rewritten_content = rewrite_response.choices[0].message.content
-            print(f"Rewrote '{original_content}' to '{rewritten_content}'")
-            seen_before[original_content] = rewritten_content
-        prompt = [
-                {"role": "user",
-                 "content": rewritten_content}
-                ]
+    if config.get('rewrite_inst', None) is not None:
+        prompt, cache_used = apply_rewrite(prompt, config)
 
     response = MODEL.chat.completions.create(
                     messages=prompt,
                     model=MODEL_NAME,
-                    temperature=temperature,
-                    seed=seed,
-                    top_p=top_p,
-
+                    temperature=config['temperature'],
+                    seed=config['seed'],
+                    top_p=config['top_p_k']
                 )
     return (response.choices[0].message.content,
             {
             'prompt':prompt, 
             'model_name': MODEL_NAME, 
-            'temperature': temperature,
-            'seed': seed,
-            'top_p_k': top_p,
-            'rewrite_inst': rewrite_inst,
+            'temperature': config['temperature'],
+            'seed': config['seed'],
+            'top_p_k': config['top_p_k'],
+            'rewrite_inst': config.get('rewrite_inst', None),
             'cache_used': cache_used
             })
