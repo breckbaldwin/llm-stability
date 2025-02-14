@@ -10,6 +10,7 @@ import sys
 from collections import defaultdict
 from typing import Callable
 import pandas as pd
+import datasets #not needed but forces check on modules being installed
 
 sys.path.append(os.getcwd())
 
@@ -44,13 +45,15 @@ SHOTS = ['0-shot', 'few_shot']
 
 def load_runs(directory, old_format=False) -> pd.DataFrame:
     """
-    Loads all .csv files in indicated directory recursively and expands likely
-    serialized dicts from their respective columns. 
-    Arguments:
-        args: str, dir with .csv files
-        old_format: bool, if True convert old format files to new
+    Loads all .csv files in the specified directory recursively and expands likely
+    serialized dictionaries from their respective columns.
+
+    Args:
+        directory (str): Directory containing .csv files.
+        old_format (bool): If True, convert old format files to the new format.
+
     Returns:
-        pd.DataFrame: Files concatenated into a df
+        pd.DataFrame: DataFrame containing concatenated data from all .csv files.
     """
     files = glob.glob(os.path.join(directory, '**', '*.csv'), 
                         recursive=True)
@@ -121,27 +124,23 @@ def get_experiment_configs(data_df: pd.DataFrame)-> list:
             
 def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFrame, list):
     """
-    Runs counting and computation of TARa, TARr and correct. Organized by
-    model x model_config x task x task_config.  
-    Unit tests in `tests/test_evaluate.py` show simple examples. 
+    Evaluates the experiment data by computing various metrics such as TARa, TARr, and correctness.
+
+    This function processes the data grouped by model, model configuration, task, and task configuration.
+    It calculates agreement counts, correctness, and bootstrap estimates for accuracy.
+
+    NOTE: This code is meant to be clear rather than properly modularized. Hopefully the long format will make it clear how results are being accumulated and reported.
 
     Arguments:
-        data_df: dataframe, will be iterated over by the 4-tuple model x model_config x task x task_config. Assumes only one collection of runs 
-        exists per designated 4-tuple. 
+        data_df (pd.DataFrame): DataFrame containing the experiment data. It is expected to have columns for model, model_config, task, task_config, and other relevant data.
+        num_bootstrap_draws (int): Number of bootstrap samples to draw for estimating accuracy distributions.
+
     Returns:
-        pd.DataFrame: Columns are: 'model',
-                                    'model_config',
-                                    'task',
-                                    'task_config',
-                                    'TACr',
-                                    'TARr,
-                                    'TACa',
-                                    'TARa',
-                                    'correct_count_per_run',
-                                    'correct_pct_per_run',
-                                    'num_questions',
-                                    'N'
-    """ 
+        tuple: A tuple containing:
+            - results (pd.DataFrame): DataFrame with evaluation results for each configuration.
+            - data_df (pd.DataFrame): Updated DataFrame with additional columns for correctness and parsed answers.
+            - errors (list): List of errors encountered during evaluation.
+    """
     
     data_df['correct'] = False
     data_df['parsed_answer'] = None
@@ -276,6 +275,15 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
     return results, data_df, errors
 
 def format_to_pct(cell):
+    """
+    Converts a float or a list of floats to percentage string format.
+    Args:
+        cell (float or list): A float or a list of floats to be converted.
+    Returns:
+        str or list: A percentage string if input is a float, or a list of percentage strings if input is a list of floats. 
+                     If the input is neither a float nor a list, it returns the input unchanged.
+    """
+
     if isinstance(cell, float):
         return f"{cell:.1%}"
     elif isinstance(cell, list):
@@ -310,8 +318,6 @@ if __name__ == "__main__":
     (eval_df, dict, errors) = evaluate(data_df)
     if not command_args.no_pretty_print_percentages:
         eval_df = eval_df.map(format_to_pct)
-    
-    #eval_df['correct_pct_per_run'] = eval_df['correct_pct_per_run'].apply(lambda lst: [f"{x:.1%}" for x in lst])
-    #eval_df['bootstrap_pcts'] = eval_df['bootstrap_pcts'].apply(lambda lst: [f"{x:.1%}" for x in lst])
     print(eval_df)
     eval_df.to_csv("stability_eval.csv")
+    print("Open stability_eval.csv in your favorite spreadsheet for results")
