@@ -60,6 +60,47 @@ def test_gpt_4o():
     assert run_info['top_p_k'] == 0.0
     assert len(result) > 10
 
+def test_llama_8b():
+    model_name = 'llama3-8b'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but need to run a unit test."}] #be polite to our overlords
+    result, run_info = llm.run(test_prompt, {'temperature':1.0,
+                                            'seed': 13,
+                                            'top_p_k': 0.0})
+    assert run_info['prompt'] == test_prompt
+    #assert run_info['model_name'] == model_name
+    assert run_info['temperature'] == 1.0
+    assert run_info['seed'] == 13
+    assert run_info['top_p_k'] == 0.0
+    assert len(result) > 10
+
+def test_llama_70b():
+    model_name = 'llama3-70b'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but need to run a unit test."}] #be polite to our overlords
+    result, run_info = llm.run(test_prompt, {'temperature':1.0,
+                                            'seed': 13,
+                                            'top_p_k': 0.0})
+    assert run_info['prompt'] == test_prompt
+    #assert run_info['model_name'] == model_name
+    assert run_info['temperature'] == 1.0
+    assert run_info['seed'] == 13
+    assert run_info['top_p_k'] == 0.0
+    assert len(result) > 10
+
+def test_mixtral_8x7b():
+    model_name = 'mixtral-8x7b'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but need to run a unit test."}] #be polite to our overlords
+    result, run_info = llm.run(test_prompt, {'temperature':1.0,
+                                            'seed': 13,
+                                            'top_p_k': 0.0})
+    assert run_info['prompt'] == test_prompt
+    #assert run_info['model_name'] == model_name
+    assert run_info['temperature'] == 1.0
+    assert run_info['seed'] == 13
+    assert run_info['top_p_k'] == 0.0
+    assert len(result) > 10
 
 def test_gpt_4o_rewrite():
     model_name = 'gpt-4o'
