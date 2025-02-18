@@ -114,6 +114,34 @@ def test_gpt_3_5_turbo_rewrite():
                                             'rewrite_inst': rewrite_inst})
     assert run_info['cache_used']
 
+def test_gpt_3_5_turbo_prefix_suffix():
+    model_name = 'gpt-35-turbo'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but can you run this unit test."}] #be polite to our overlords
+    prefix = "x x x x x x "
+    suffix = " y y y y y"
+    result, run_info = llm.run(test_prompt, {'temperature':1.0,
+                                            'seed': 13,
+                                            'top_p_k': 0.0,
+                                            'prefix': prefix,
+                                            'suffix': suffix})
+    assert run_info['prompt'][0]['content'] ==\
+         f"{prefix}{test_prompt[0]['content']}{suffix}"
+
+def test_gpt_4o_prefix_suffix():
+    model_name = 'gpt-4o'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but can you run this unit test."}] #be polite to our overlords
+    prefix = "x x x x x x "
+    suffix = " y y y y y"
+    result, run_info = llm.run(test_prompt, {'temperature':1.0,
+                                            'seed': 13,
+                                            'top_p_k': 0.0,
+                                            'prefix': prefix,
+                                            'suffix': suffix})
+    assert run_info['prompt'][0]['content'] ==\
+         f"{prefix}{test_prompt[0]['content']}{suffix}"
+
 
 # def test_Llama_3_120B_Instruct_Q5_K_S():
 #     model_name = 'Llama-3-120B-Instruct-Q5_K_S'
