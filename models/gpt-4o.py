@@ -1,7 +1,10 @@
 from openai import AzureOpenAI
 import os
 import sys
+import helper_functions
 from dotenv import load_dotenv
+
+
 
 load_dotenv()
 
@@ -46,7 +49,9 @@ def run(prompt: list, config: dict) -> (str):
        config: dict, {'temperature': float probability,
                       'seed': int,
                       'top_p_k': float probability,
-                      'rewrite_inst': str
+                      'rewrite_inst': str| None,
+                      'prefix': str| None,
+                      'suffix': str| None
                       }
     Returns:
        str: payload
@@ -60,32 +65,18 @@ def run(prompt: list, config: dict) -> (str):
     temperature = config['temperature']
     seed = config['seed']
     top_p = config['top_p_k']
-    rewrite_inst = config.get('rewrite_inst', None)
-    if rewrite_inst is not None:
-        original_content = prompt[0]['content']
-        rewritten_content = None
-        if original_content in seen_before:
-            rewritten_content = seen_before[original_content]
-            print(f"Cache hit '{original_content}' -> '{rewritten_content}'")
-            cache_used = True
-        else: 
-            rewrite_prompt = [
-                {"role": "user",
-                 "content": f"{rewrite_inst}\n\n{original_content}"}
-                ]
-            rewrite_response = MODEL.chat.completions.create(
-                    messages=rewrite_prompt,
-                    model=MODEL_NAME,
-                    temperature=temperature,
-                    seed=seed,
-                    top_p=top_p)
-            rewritten_content = rewrite_response.choices[0].message.content
-            print(f"Rewrote '{original_content}' to '{rewritten_content}'")
-            seen_before[original_content] = rewritten_content
-        prompt = [
-                {"role": "user",
-                 "content": rewritten_content}
-                ]
+    cache_used = False
+    if config.get('rewrite_inst', None) is not None:
+        prompt, cache_used = \
+            helper_functions.apply_rewrite(prompt, config, seen_before, MODEL, 
+                                            MODEL_NAME)
+    if config.get('prefix', None) is not None:
+        prompt = [{'role': 'user',
+                   'content': config['prefix'] + prompt[0]['content']}]
+    if config.get('suffix', None) is not None:
+        prompt = [{'role': 'user',
+                   'content': prompt[0]['content'] + config['suffix']}]
+
 
     response = MODEL.chat.completions.create(
                     messages=prompt,
@@ -101,6 +92,6 @@ def run(prompt: list, config: dict) -> (str):
             'temperature': temperature,
             'seed': seed,
             'top_p_k': top_p,
-            'rewrite_inst': rewrite_inst,
+            'rewrite_inst': config.get('rewrite_inst', None),
             'cache_used': cache_used
             })

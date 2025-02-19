@@ -2,6 +2,7 @@ from openai import AzureOpenAI
 import os
 import sys
 from dotenv import load_dotenv
+import helper_functions
 
 load_dotenv()
 
@@ -39,49 +40,6 @@ MODEL_NAME = "gpt-35-turbo"
 
 seen_before = {} #cache previous results for run to avoid variation
 
-def apply_rewrite(prompt, config):
-    """
-    Rewrites the content of a given prompt based on a configuration and cache.
-    Args:
-        prompt (list): A list containing a dictionary with the key 'content' representing the original prompt content.
-        config (dict): A dictionary containing configuration parameters for the rewrite process. Expected keys are 'rewrite_inst' (instructions for rewriting), 'temperature', 'seed', and 'top_p_k'.
-        A typical rewrite instruction is: "Please rewrite the below prompt to maximize your understanding of the instruction for processing."
-    Returns:
-        list: A list containing a dictionary with the key 'content' representing the rewritten prompt content.
-        bool: A boolean flag indicating whether the cache was used.
-    Side Effects:
-        Updates the global 'seen_before' dictionary with the original content as the key and the rewritten content as the value.
-        Prints messages indicating whether the cache was used or if the content was rewritten.
-    """
-
-    global seen_before
-    cache_used = False
-    original_content = prompt[0]['content']
-    rewritten_content = None
-    if original_content in seen_before:
-        rewritten_content = seen_before[original_content]
-        print(f"Cache hit '{original_content}' -> '{rewritten_content}'")
-        cache_used = True
-    else: 
-        rewrite_prompt = [
-            {"role": "user",
-                "content": f"{config['rewrite_inst']}\n\n{original_content}"}
-            ]
-        rewrite_response = MODEL.chat.completions.create(
-                messages=rewrite_prompt,
-                model=MODEL_NAME,
-                temperature=config['temperature'],
-                seed=config['seed'],
-                top_p=config['top_p_k'])
-        rewritten_content = rewrite_response.choices[0].message.content
-        print(f"Rewrote '{original_content}' to '{rewritten_content}'")
-        seen_before[original_content] = rewritten_content
-    prompt = [
-            {"role": "user",
-                "content": rewritten_content}
-            ]
-    return prompt, cache_used
-
 def run(prompt: list, config: dict) -> (str):
     """
     Runs a prompt and returns the content portion of the response and 
@@ -99,8 +57,15 @@ def run(prompt: list, config: dict) -> (str):
     """
     cache_used = False
     if config.get('rewrite_inst', None) is not None:
-        prompt, cache_used = apply_rewrite(prompt, config)
-
+        prompt, cache_used = \
+            helper_functions.apply_rewrite(prompt, config, seen_before, MODEL, 
+                                            MODEL_NAME)
+    if config.get('prefix', None) is not None:
+        prompt = [{'role': 'user',
+                   'content': config['prefix'] + prompt[0]['content']}]
+    if config.get('suffix', None) is not None:
+        prompt = [{'role': 'user',
+                   'content': prompt[0]['content'] + config['suffix']}]
     response = MODEL.chat.completions.create(
                     messages=prompt,
                     model=MODEL_NAME,
