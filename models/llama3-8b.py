@@ -7,7 +7,7 @@ load_dotenv()
 
 from together import Together
 
-MODEL = Together(api_key=os.environ["LLAMA3-8B-KEY"])
+MODEL = Together(api_key=os.environ["TOGETHER_KEY"])
 
 MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct-Turbo"
 
