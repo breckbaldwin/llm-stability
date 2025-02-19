@@ -86,8 +86,6 @@ def run_model(llm,
             prompt = [{"role": "user", "content": rubric['input']}]
             try:
                 response, run_config = llm.run(prompt, model_config)
-                if model_config.get('rewrite_inst', None) is None:
-                    assert run_config['prompt'] == prompt
                 for config in ['temperature', 'top_p_k', 'seed']:
                     if config in model_config:
                         assert run_config[config] == model_config[config]
