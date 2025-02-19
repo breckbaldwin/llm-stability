@@ -35,6 +35,51 @@ def experiment_setup(models:list,
                                              task_config))
     return experiment_setups
 
+def apply_rewrite(prompt: list, config: dict, seen_before: dict, model: OpenAI, model_name: str) -> (list, bool):
+    """
+    Rewrites the content of a given prompt based on a configuration and cache.
+    Args:
+        prompt (list): A list containing a dictionary with the key 'content' representing the original prompt content.
+        config (dict): A dictionary containing configuration parameters for the rewrite process. Expected keys are 'rewrite_inst' (instructions for rewriting), 'temperature', 'seed', and 'top_p_k'.
+        A typical rewrite instruction is: "Please rewrite the below prompt to maximize your understanding of the instruction for processing."
+        seen_before (dict): Cache of prior values, important to avoid varied rewrites on subsequent calls as well as a cost savings.
+        model (OpenAI): The model instance used for generating the rewrite.
+        model_name (str): The name of the model to be used for generating the rewrite.
+    Returns:
+        list: A list containing a dictionary with the key 'content' representing the rewritten prompt content.
+        bool: A boolean flag indicating whether the cache was used.
+    Side Effects:
+        Updates the global 'seen_before' dictionary with the original content as the key and the rewritten content as the value.
+        Prints messages indicating whether the cache was used or if the content was rewritten.
+    """
+
+    cache_used = False
+    original_content = prompt[0]['content']
+    rewritten_content = None
+    if original_content in seen_before:
+        rewritten_content = seen_before[original_content]
+        print(f"Cache hit '{original_content}' -> '{rewritten_content}'")
+        cache_used = True
+    else: 
+        rewrite_prompt = [
+            {"role": "user",
+                "content": f"{config['rewrite_inst']}\n\n{original_content}"}
+            ]
+        rewrite_response = model.chat.completions.create(
+                messages=rewrite_prompt,
+                model=model_name,
+                temperature=config['temperature'],
+                seed=config['seed'],
+                top_p=config['top_p_k'])
+        rewritten_content = rewrite_response.choices[0].message.content
+        print(f"Rewrote '{original_content}' to '{rewritten_content}'")
+        seen_before[original_content] = rewritten_content
+    prompt = [
+            {"role": "user",
+                "content": rewritten_content}
+            ]
+    return prompt, cache_used
+
 
 def parse_parenthesized_answers(answers: list, row:pd.Series, raw_choices=None) -> (str, None):
     """
@@ -58,7 +103,7 @@ def parse_parenthesized_answers(answers: list, row:pd.Series, raw_choices=None) 
 (A) 0. (B) 1. (C) 2. (D) 3.
 
 The correct answer is:
-None of the given options are correct. The dimension that cannot be the dimension of \( V \cap W \) is 4."
+None of the given options are correct. The dimension that cannot be the dimension of ( V cap W ) is 4."
         
 
     """
