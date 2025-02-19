@@ -237,6 +237,16 @@ Open `evaluation_output.csv` in your favorite spreadsheet. The column labels are
 - bootstrap_pcts: boostrap_counts/num_questions
 - date: Date of run
 
+### 4.4 Available data in repository
+
+The `experiments` directory contains all released runs for our experiments. The
+contents must be uncompressed. On OSX the command `tar -xvzf runs.tgz` executed in the terminal in `experiments/v3/` directory. Your operating system may have other ways of uncompressing the file. Once uncompressed you can run `python evaluate -d experiments/v3` and once done view `stability_eval.csv`. 
+
+The contents of `experiments` are as follows:
+
+- `experiments/v2`: Contains most of the data used in the v2 paper. The data has to be evaluated with the old data flag, e.g., `python evaluate.py -eo -d experiments/v2`.
+- 
+
 ## 5. Generate new runs
 
 Running your own configurations/experiments requires that you pass the tests for the LLMs you want to use in section 3.1 and 3.2. Once the tasks/models are working then it should be trivial to run with different configurations. You are strongly encouraged to use the existing code base to run and evaluate to maintain consistency with other experiments. 
