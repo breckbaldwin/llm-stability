@@ -2,6 +2,7 @@ import together
 import os
 import sys
 from dotenv import load_dotenv
+import helper_functions
 
 load_dotenv()
 
