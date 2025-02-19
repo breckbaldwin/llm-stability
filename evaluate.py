@@ -122,6 +122,35 @@ def get_experiment_configs(data_df: pd.DataFrame)-> list:
     return exp_configs
 
             
+def check_hand_annotated_cache(row, answer_cache_df):
+    """
+    Check if a specific row exists in the answer cache DataFrame and return the parsed answer if found.
+    Args:
+        row (pd.Series): A pandas Series object representing a row of data with keys 'response', 'task', 'model', and 'rubric_id'.
+        answer_cache_df (pd.DataFrame): A pandas DataFrame containing cached answers with columns 'response', 'task', 'model', 'id', and 'parsed_answer'.
+    Returns:
+        pd.Series or None: The 'parsed_answer' column from the matching row in answer_cache_df if a match is found, otherwise None is returned and the
+        answer_cache_df is updated with a copy of the row that has 'parsed_answer' set to None. This will be serialized later for examination by an annotation process.
+    """
+
+    answer_df = \
+        answer_cache_df[(answer_cache_df['response'] == row['response'])
+                        & (answer_cache_df['task'] == row['task'])
+                        & (answer_cache_df['model'] == row['model'])
+                        & (answer_cache_df['rubric_id'] == row['rubric_id'])
+                    ]
+    if len(answer_df.index) == 1:
+        return answer_df['parsed_answer'].iloc[0], answer_cache_df
+    else:
+        row_copy = \
+            row[['response', 'task', 'model', 'rubric_id', 'rubric']].copy()
+        row_copy['parsed_answer'] = None
+        answer_cache_df = pd.concat([answer_cache_df, row_copy.to_frame().T], 
+                                     ignore_index=True)
+        
+    return None, answer_cache_df
+
+
 def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFrame, list):
     """
     Evaluates the experiment data by computing various metrics such as TARa, TARr, and correctness.
@@ -149,7 +178,11 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
     errors = []
     total_evals = 0
     task_x_rubric = set()
-    
+    if os.path.exists('answer_cache.csv'):
+        answer_cache_df = pd.read_csv('answer_cache.csv')
+    else:
+        answer_cache_df = pd.DataFrame({'response':[], 'task': [], 'model': [],
+                                        'parsed_answer':[], 'rubric':[], 'rubric_id':[]})
     for model, model_config, task, task_config in configs:
         try:
             task_module = importlib.import_module(f'tasks.{task}')
@@ -193,7 +226,10 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
                     continue
                 try:
                     parsed_answer = task_module.answer_fn(row, task_config)
-                    if parsed_answer is None :
+                    if parsed_answer is None:
+                        (parsed_answer, answer_cache_df) = \
+                                check_hand_annotated_cache(row, answer_cache_df)
+                    if parsed_answer is None:
                         error = f"No answer found {model} {task} {id}"
                         seen_errors[error] += 1
                         if seen_errors[error] == 1:

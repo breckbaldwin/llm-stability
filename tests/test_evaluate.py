@@ -149,3 +149,34 @@ def test_v2_Yes_No():
     assert len(eval_df['bootstrap_counts'].iloc[0]) == 10
     assert len(eval_df['bootstrap_pcts'].iloc[0]) == 10
 
+def test_hand_annotated_cache():
+    test_data_df = pd.DataFrame({ #1 TARr perfect, TARa perfect
+        'task':['professional_accounting'] * 2,
+        'task_config': [{'prompt_type': 'v2'}] * 2,
+        'run':list(range(2)),
+        'model':['gpt-4o'] * 2,
+        'model_config':[{}] *  2,
+        'rubric_id':[1] * 2,
+        'rubric':['bala', 'blow'],
+        'response':['blah blab', 'Something else'],
+        'gt': ['(A)'] * 2,
+        'date': ['some date'] * 2
+        })
+
+    answer_cache_df = pd.DataFrame({'response':[], 'task': [], 'model': [],
+                                        'parsed_answer':[], 'rubric':[], 'rubric_id':[]})
+    row = test_data_df.iloc[0]
+    parsed_answer, answer_cache_df =\
+         evaluate.check_hand_annotated_cache(row, answer_cache_df)
+    assert len(answer_cache_df.index) == 1
+    assert parsed_answer is None
+    answer_cache_df.at[0, 'parsed_answer'] = 'the answer is X'
+    parsed_answer, answer_cache_df =\
+         evaluate.check_hand_annotated_cache(row, answer_cache_df)
+    assert len(answer_cache_df.index) == 1
+    assert parsed_answer == 'the answer is X'
+
+
+
+
+
