@@ -5,8 +5,8 @@ import helper_functions
 import run_experiment
 from datetime import datetime, date, MINYEAR
 
-MODELS = ['gpt-4o', 'gpt-35-turbo']
-MODEL_CONFIGS = [{'temperature': 0.0, 'seed': 12, 'top_p_k': 0.0}]
+MODELS = ['gpt-4o', 'gpt-35-turbo', 'llama3-8b']
+MODEL_CONFIGS = [{'temperature': 0.0, 'seed': 12, 'top_p_k': 1.0}]
 TASKS = ['navigate', 'logical_deduction', 'professional_accounting',        
          'ruin_names', 'college_mathematics', 'high_school_european_history',
          'public_relations', 'geometric_shapes'
