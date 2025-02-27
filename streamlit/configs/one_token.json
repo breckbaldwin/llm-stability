@@ -1,0 +1,25 @@
+{
+    "tabs": [
+        {
+            "file_path": "tabs/home_tab.py",
+            "tab_title": "Home"
+        }
+    ],
+    "Home": [
+        {
+            "import": "prompt_exp",
+            "fn": "run_ui",
+            "args": [
+                {
+                    "var": "page"
+                },
+                {
+                    "var": "cell_i"
+                }
+            ],
+            "setup": {"dataset": "cais/mmlu",
+                      "sub-task": "professional_accounting",
+                    "model": "gpt-3.5-turbo"}
+        }
+    ]
+}
