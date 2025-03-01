@@ -35,12 +35,9 @@ Tests: Run `pytest tests/test_models.py::test_gpt_4o` to verify that model funct
 
 
 MODEL = OpenAI(
-                azure_endpoint=os.environ["AZURE_ENDPOINT_GPT_4_0"],
-                api_key=os.environ["OPEN_AI_KEY"],
-                api_version="2024-04-01-preview",
-                azure_deployment="AppliedAI-gpt-4o",
+                api_key=os.environ["OPEN_AI_KEY"]
             )
-MODEL_NAME = "gpt-4o-2024-08-06"
+MODEL_NAME = "gpt-4o"
 
 seen_before = {} #cache previous results for run to avoid variation
 
@@ -81,53 +78,25 @@ def run(prompt: list, config: dict) -> (str):
         prompt = [{'role': 'user',
                    'content': prompt[0]['content'] + config['suffix']}]
     if config.get('schema', None) is not None:
+        prompt.insert(0, {"role": 'system',
+                    "content": config['system_content']})
+        response = \
+            MODEL.chat.completions.create(model=MODEL_NAME,
+                                        messages=prompt,
+                                        response_format={
+                                            "type": "json_schema",
+                                            "json_schema": config['schema']
+                                        })
+    else:
         response = MODEL.chat.completions.create(
                     messages=prompt,
                     model=MODEL_NAME,
                     temperature=temperature,
                     seed=seed,
-                    top_p=top_p,
-                response_format={"type": "json_schema",
-                           "json_schema": config['schema']})
-    else:
-
-
-    response = MODEL.chat.completions.create(
-                    messages=prompt,
-                    model=MODEL_NAME,
-                    temperature=temperature,
-                    seed=seed,
                     top_p=top_p
-                response_format={
-        "type": "json_schema",
-        "json_schema": {
-            "name": "math_reasoning",
-            "schema": {
-                "type": "object",
-                "properties": {
-                    "steps": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "explanation": {"type": "string"},
-                                "output": {"type": "string"}
-                            },
-                            "required": ["explanation", "output"],
-                            "additionalProperties": False
-                        }
-                    },
-                    "final_answer": {"type": "string"}
-                },
-                "required": ["steps", "final_answer"],
-                "additionalProperties": False
-            },
-            "strict": True
-        }
-    }
-    )
+                )
 
-    return response.choices[0].message
+
     return (response.choices[0].message.content,
             {
             'prompt':prompt, 
@@ -138,34 +107,3 @@ def run(prompt: list, config: dict) -> (str):
             'rewrite_inst': config.get('rewrite_inst', None),
             'cache_used': cache_used
             })
-
-
-
-response_format={
-        "type": "json_schema",
-        "json_schema": {
-            "name": "math_reasoning",
-            "schema": {
-                "type": "object",
-                "properties": {
-                    "steps": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "explanation": {"type": "string"},
-                                "output": {"type": "string"}
-                            },
-                            "required": ["explanation", "output"],
-                            "additionalProperties": False
-                        }
-                    },
-                    "final_answer": {"type": "string"}
-                },
-                "required": ["steps", "final_answer"],
-                "additionalProperties": False
-            },
-            "strict": True
-        }
-    }
-    )

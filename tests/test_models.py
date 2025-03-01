@@ -5,6 +5,7 @@ sys.path.append(os.getcwd())
 import tasks.professional_accounting
 import tasks.navigate
 import importlib
+import json
 
 """
 Testing models for basic processing and authentication. Usage:
@@ -184,16 +185,87 @@ def test_gpt_4o_prefix_suffix():
          f"{prefix}{test_prompt[0]['content']}{suffix}"
 
 
-# def test_Llama_3_120B_Instruct_Q5_K_S():
-#     model_name = 'Llama-3-120B-Instruct-Q5_K_S'
-#     llm = importlib.import_module(f'models.{model_name}')
-#     test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but need to run a unit test."}] #be polite to our overlords
-#     result, run_info = llm.run(test_prompt, {'temperature':1.0,
-#                                             'seed': 13,
-#                                             'top_p_k': 0.0})
-#     assert run_info['prompt'] == test_prompt
-#     assert run_info['model_name'] == model_name
-#     assert run_info['temperature'] == 1.0
-#     assert run_info['seed'] == 13
-#     assert run_info['top_p_k'] == 0.0
-#     assert len(result) > 10
+def test_gpt_4o_OAI():
+    system_prompt = 'Please answer the following question with the answer field only.'
+    schema = {
+            "name": "yes_no",
+            "schema":{ 
+                "type": "object",
+                "properties": {
+                    "Answer": {
+                    "type": "string",
+                    "enum" : ["Yes", "No"]
+                    }
+                },
+                "required": [
+                    "answer"
+                ]
+            }
+        }
+    model_name = 'gpt-4o_OAI'
+    llm = importlib.import_module(f'models.{model_name}')
+    prompt = [{"role": "user", "content": "Is 835 even?"}]
+    result, run_info = llm.run(prompt, {'temperature':1.0,
+                                            'seed': 13,
+                                            'top_p_k': 0.0,
+                                            'system_content': system_prompt,
+                                            'schema': schema})
+    assert len(run_info['prompt'][0]['content']) > 0
+    answer_d = json.loads(result)
+    assert answer_d['Answer'] == 'No'
+
+
+
+
+
+
+
+    #math_tutor_prompt = '''
+#     You are a helpful math tutor. You will be provided with a math problem,
+#     and your goal will be to output a step by step solution, along with a final answer.
+#     For each step, just provide the output as an equation use the explanation field to detail the reasoning.
+# '''
+
+# def get_math_solution(question):
+#     response = client.chat.completions.create(
+#     model=MODEL,
+#     messages=[
+#         {
+#             "role": "system", 
+#             "content": dedent(math_tutor_prompt)
+#         },
+#         {
+#             "role": "user", 
+#             "content": question
+#         }
+#     ],
+#     response_format={
+#         "type": "json_schema",
+#         "json_schema": {
+#             "name": "math_reasoning",
+#             "schema": {
+#                 "type": "object",
+#                 "properties": {
+#                     "steps": {
+#                         "type": "array",
+#                         "items": {
+#                             "type": "object",
+#                             "properties": {
+#                                 "explanation": {"type": "string"},
+#                                 "output": {"type": "string"}
+#                             },
+#                             "required": ["explanation", "output"],
+#                             "additionalProperties": False
+#                         }
+#                     },
+#                     "final_answer": {"type": "string"}
+#                 },
+#                 "required": ["steps", "final_answer"],
+#                 "additionalProperties": False
+#             },
+#             "strict": True
+#         }
+#     }
+#     )
+
+#     return response.choices[0].message
