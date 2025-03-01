@@ -209,7 +209,7 @@ def test_gpt_4o_OAI():
                                             'seed': 13,
                                             'top_p_k': 0.0,
                                             'system_content': system_prompt,
-                                            'schema': schema})
+                                            'answer_schema': schema})
     assert len(run_info['prompt'][0]['content']) > 0
     answer_d = json.loads(result)
     assert answer_d['Answer'] == 'No'

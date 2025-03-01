@@ -77,7 +77,7 @@ def run(prompt: list, config: dict) -> (str):
     if config.get('suffix', None) is not None:
         prompt = [{'role': 'user',
                    'content': prompt[0]['content'] + config['suffix']}]
-    if config.get('schema', None) is not None:
+    if config.get('answer_schema', None) is not None:
         prompt.insert(0, {"role": 'system',
                     "content": config['system_content']})
         response = \
@@ -85,7 +85,7 @@ def run(prompt: list, config: dict) -> (str):
                                         messages=prompt,
                                         response_format={
                                             "type": "json_schema",
-                                            "json_schema": config['schema']
+                                            "json_schema": config['answer_schema']
                                         })
     else:
         response = MODEL.chat.completions.create(
