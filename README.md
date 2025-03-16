@@ -2,7 +2,7 @@
 
 Public repo: https://github.com/Comcast/llm-stability
 
-v3.0
+Please note that follow-on work has moved to https://github.com/breckbaldwin/llm-stability
 
 ## 1. Supporting software and data
 

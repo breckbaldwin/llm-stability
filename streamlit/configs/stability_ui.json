@@ -1,0 +1,87 @@
+{
+    "tabs": [
+        {
+            "file_path": "tabs/home_tab.py",
+            "tab_title": "Home"
+        },
+        {
+            "file_path": "tabs/explore_runs_tab.py",
+            "tab_title": "Explore Runs"
+        },
+        {
+            "file_path": "tabs/presentation_tab.py",
+            "tab_title": "Presentation"
+        }
+    ],
+    "Home": [
+        {
+            "import": "prompt_exp",
+            "fn": "run_ui",
+            "args": [
+                {
+                    "var": "page"
+                },
+                {
+                    "var": "cell_i"
+                }
+            ],
+            "setup": {
+                    "prefix_prompt": "Please answer the following question with one word.",
+                    "suffix_prompt": "Remember, answer with one word.",
+                    "task": "professional_accounting",
+                    "task_config": {
+                                    "prompt_type": "v2",
+                                    "shots": 0
+                    },
+                    "model": "gpt-35-turbo",
+                    "model_config": {
+                        "temperature": 0.0,
+                        "seed": 12,
+                        "top_p_k": 0.0
+                    },
+                    "task_config": {
+                        "prompt_type": "v2",
+                        "shots": 0
+                    },
+                    "N": 5
+                }
+        }
+    ],
+    "Explore Runs": [
+        {
+            "import": "view_runs",
+            "fn": "run_ui",
+            "args": [
+                {
+                    "var": "page"
+                },
+                {
+                    "var": "cell_i"
+                }
+            ],
+            "setup": {
+
+                "experiment_dirs": ["v3_runs", "v2_runs"],
+                "selected_dir": "v3_runs",
+                "variation": "sarp",
+                "run_to_view": ""
+            }
+        }
+    ],
+    "Presentation": [
+        {
+            "import": "presentation",
+            "fn": "run_ui",
+            "args": [
+                {
+                    "var": "page"
+                },
+                {
+                    "var": "cell_i"
+                }
+            ],
+            "setup": {
+            }
+        }
+    ]
+}
