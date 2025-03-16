@@ -84,6 +84,7 @@ def run_model(llm,
                 if rubric_counter % 50 == 0 or rubric_counter == 10:
                     context.markdown(f"Running rubric {rubric_counter}")
             prompt = [{"role": "user", "content": rubric['input']}]
+            model_config['rubric_counter'] = rubric_counter
             try:
                 response, run_config = llm.run(prompt, model_config)
                 for config in ['temperature', 'top_p_k', 'seed']:
