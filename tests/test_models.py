@@ -218,54 +218,18 @@ def test_gpt_4o_OAI():
 
 
 
+def test_gpt_35_OAI_fine_tuned():
+    #pre trained fine tuned models
+    model_config = {'temperature': 0.0, 'seed': 12, 'top_p_k': 1.0,
+                    'even_model': 'ft:gpt-3.5-turbo-0125:personal::BAJ2zmk1', 
+                    'odd_model': 'ft:gpt-3.5-turbo-0125:personal::BAJA6sJq'}
+    model_name = 'gpt-35_OAI'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but can you run this unit test."}] #be polite to our overlords
+    model_config['rubric_counter'] = 0
+    result, run_info = llm.run(test_prompt, model_config)
+    model_config['rubric_counter'] = 1
+    result, run_info = llm.run(test_prompt, model_config)
+    breakpoint()
+    assert True
 
-
-    #math_tutor_prompt = '''
-#     You are a helpful math tutor. You will be provided with a math problem,
-#     and your goal will be to output a step by step solution, along with a final answer.
-#     For each step, just provide the output as an equation use the explanation field to detail the reasoning.
-# '''
-
-# def get_math_solution(question):
-#     response = client.chat.completions.create(
-#     model=MODEL,
-#     messages=[
-#         {
-#             "role": "system", 
-#             "content": dedent(math_tutor_prompt)
-#         },
-#         {
-#             "role": "user", 
-#             "content": question
-#         }
-#     ],
-#     response_format={
-#         "type": "json_schema",
-#         "json_schema": {
-#             "name": "math_reasoning",
-#             "schema": {
-#                 "type": "object",
-#                 "properties": {
-#                     "steps": {
-#                         "type": "array",
-#                         "items": {
-#                             "type": "object",
-#                             "properties": {
-#                                 "explanation": {"type": "string"},
-#                                 "output": {"type": "string"}
-#                             },
-#                             "required": ["explanation", "output"],
-#                             "additionalProperties": False
-#                         }
-#                     },
-#                     "final_answer": {"type": "string"}
-#                 },
-#                 "required": ["steps", "final_answer"],
-#                 "additionalProperties": False
-#             },
-#             "strict": True
-#         }
-#     }
-#     )
-
-#     return response.choices[0].message
