@@ -33,7 +33,7 @@ you risk putting credentials in the repo.
 MODEL = OpenAI(
                 api_key=os.environ["OPEN_AI_KEY"]
             )
-MODEL_NAME = "gpt-35-turbo" #"gpt-3.5-turbo"
+MODEL_NAME = "gpt-3.5-turbo"
 
 seen_before = {} #cache previous results for run to avoid variation
 
@@ -71,6 +71,7 @@ def run(prompt: list, config: dict) -> (str):
     elif config.get('odd_model', None) is not None \
         and config['rubric_counter'] % 2 == 1:
         model=config['odd_model']
+        
     
     response = MODEL.chat.completions.create(messages=prompt, model=model)
     
@@ -79,7 +80,9 @@ def run(prompt: list, config: dict) -> (str):
                     model=model,
                     temperature=config['temperature'],
                     seed=config['seed'],
-                    top_p=config['top_p_k']
+                    top_p=config['top_p_k'],
+                    logprobs=config.get('logprobs', False),
+                    top_logprobs=config.get('top_logprobs', 0)
                 )
     return (response.choices[0].message.content,
             {
@@ -89,5 +92,6 @@ def run(prompt: list, config: dict) -> (str):
             'seed': config['seed'],
             'top_p_k': config['top_p_k'],
             'rewrite_inst': config.get('rewrite_inst', None),
-            'cache_used': cache_used
+            'cache_used': cache_used,
+            'logprobs': response.choices[0].logprobs.content
             })

@@ -230,6 +230,15 @@ def test_gpt_35_OAI_fine_tuned():
     result, run_info = llm.run(test_prompt, model_config)
     model_config['rubric_counter'] = 1
     result, run_info = llm.run(test_prompt, model_config)
-    breakpoint()
     assert True
 
+def test_gpt_35_OAI_logprob():
+    #pre trained fine tuned models
+    model_config = {'temperature': 0.0, 'seed': 12, 'top_p_k': 1.0,
+                    'logprobs':True, 'top_logprobs': 5}
+    model_name = 'gpt-35_OAI'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but can you run this unit test."}] #be polite to our overlords
+    result, run_info = llm.run(test_prompt, model_config)
+    assert len(run_info['logprobs'][0].top_logprobs) == 5
+    assert run_info['logprobs'][0].top_logprobs[0].logprob < 0.0
