@@ -41,7 +41,7 @@ MODELS =['gpt-4o', 'llama-3-70b', 'finetuned-3.5', 'gpt-3.5-turbo',
 TASKS = ['high_school_european_history', 'college_mathematics',
          'geometric_shapes', 'navigate', 'professional_accounting', 
          'logical_deduction', 'ruin_names', 'public_relations']
-SHOTS = ['0-shot', 'few_shot']
+SHOTS = ['0-shot', 'few_shot', '20-shot']
 
 def load_runs(directory, old_format=False) -> pd.DataFrame:
     """
@@ -94,6 +94,7 @@ def load_runs(directory, old_format=False) -> pd.DataFrame:
             csv_df['response'] = csv_df['raw_response']
             m = re.match(r'.*_(\d+)\.csv', csv_file)
             csv_df['run'] = int(m.group(1))
+            csv_df['date'] = '2024-08-00_00-00-00' #Appromite date of runs
         for col in ['prompt', 'model_config', 'task_config', 'rubric']:
             csv_df[col] = csv_df[col].apply(lambda row: json.loads(row))
         csv_df['file'] = csv_file
@@ -150,6 +151,12 @@ def check_hand_annotated_cache(row, answer_cache_df):
         
     return None, answer_cache_df
 
+def remove_key_value_ret_dict(x:dict)->dict:
+    """
+        Removes 'rubric_counter' key/value from dict and returns dict
+    """
+    x.pop('rubric_counter', None)
+    return x
 
 def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFrame, list):
     """
@@ -173,6 +180,9 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
     
     data_df['correct'] = False
     data_df['parsed_answer'] = None
+    #remove rubric id used for fine tuned runs
+    data_df['model_config'] = \
+        data_df['model_config'].apply(lambda x: remove_key_value_ret_dict(x))
     configs = get_experiment_configs(data_df)
     results = pd.DataFrame()
     errors = []
