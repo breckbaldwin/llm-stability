@@ -53,6 +53,7 @@ def run(prompt: list, config: dict) -> (str):
        dict: run configuration used--may have rewritten prompt or other mods
     """
     cache_used = False
+    logprobs_config = config.get('logprobs', False)
     if config.get('rewrite_inst', None) is not None:
         prompt, cache_used = \
             helper_functions.apply_rewrite(prompt, config, seen_before, MODEL, 
@@ -81,9 +82,12 @@ def run(prompt: list, config: dict) -> (str):
                     temperature=config['temperature'],
                     seed=config['seed'],
                     top_p=config['top_p_k'],
-                    logprobs=config.get('logprobs', False),
-                    top_logprobs=config.get('top_logprobs', 0)
+                    logprobs=logprobs_config
                 )
+    if logprobs_config:
+        logprobs = response.choices[0].logprobs.content
+    else:
+        logprobs = None
     return (response.choices[0].message.content,
             {
             'prompt':prompt, 
@@ -93,5 +97,5 @@ def run(prompt: list, config: dict) -> (str):
             'top_p_k': config['top_p_k'],
             'rewrite_inst': config.get('rewrite_inst', None),
             'cache_used': cache_used,
-            'logprobs': response.choices[0].logprobs.content
+            'logprobs': logprobs
             })
