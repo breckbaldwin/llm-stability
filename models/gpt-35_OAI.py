@@ -87,7 +87,7 @@ def run(prompt: list, config: dict) -> (str):
     if logprobs_config:
         logprobs = response.choices[0].logprobs.content
     else:
-        logprobs = None
+        logprobs = []
     return (response.choices[0].message.content,
             {
             'prompt':prompt, 

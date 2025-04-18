@@ -63,7 +63,7 @@ def run(prompt: list, config: dict) -> (str):
                     zip(clean_tokens,
                         response.choices[0].logprobs.token_logprobs)]
     else:
-        logprobs = None
+        logprobs = []
     return (response.choices[0].message.content,
             {
             'prompt':prompt, 
