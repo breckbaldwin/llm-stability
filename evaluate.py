@@ -293,7 +293,7 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
                 correct_by_raw_count[count - 1] += 1
             for count in incorrect_raw_to_count.values():
                 incorrect_by_raw_count[count - 1] += 1
-            
+            runs_accum.append(run_accum)
             # for N iterations, draw
         bootstrap_correct_counts = [0] * num_bootstrap_draws
         for d in range(num_bootstrap_draws):
