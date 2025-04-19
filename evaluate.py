@@ -209,12 +209,15 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
         total_agreement_count_raw = 0
         total_agreement_count_answer = 0
         num_runs = max(exp_df['run']) + 1
-        correct = [0] * num_runs # need to track correct for run number
+        correct = [0] * num_runs # need to track
         any_correct_count = 0
         any_wrong_count = 0
+        correct_MACr = 0
         rubric_ids = exp_df['rubric_id'].unique()
         num_questions = len(rubric_ids)
         runs_accum = []
+        correct_by_raw_count = [0] * num_runs
+        incorrect_by_raw_count = [0] * num_runs
         for id in rubric_ids:
             seen_errors = defaultdict(int)
             task_x_rubric.add(f"{task}x{id}")
@@ -222,6 +225,8 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
             #question_df = question_df.reset_index(drop=True)
             raw = set()
             answer = set()
+            correct_raw_to_count = defaultdict(int)
+            incorrect_raw_to_count = defaultdict(int)
             if not num_runs == len(question_df.index):
                 print(f"{model}, {model_config}, {task}, {task_config}")
                 error = f"runs not matching expected length, expected {num_runs}, got {len(question_df.index)} for {question_df['file'].to_list()}"
@@ -273,6 +278,9 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
                     run_accum[row['run']] = 1
                     data_df.loc[idx,'correct'] = True
                     corrects_for_rubric += 1
+                    correct_raw_to_count[task_module.raw_fn(row)] += 1
+                else:
+                    incorrect_raw_to_count[task_module.raw_fn(row)] += 1
             if len(raw) == 1:
                 total_agreement_count_raw += 1
             if len(answer) == 1:
@@ -281,6 +289,10 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
                 any_wrong_count += 1
             if corrects_for_rubric > 0:
                 any_correct_count += 1
+            for count in correct_raw_to_count.values():
+                correct_by_raw_count[count - 1] += 1
+            for count in incorrect_raw_to_count.values():
+                incorrect_by_raw_count[count - 1] += 1
             runs_accum.append(run_accum)
             # for N iterations, draw
         bootstrap_correct_counts = [0] * num_bootstrap_draws
@@ -309,6 +321,8 @@ def evaluate(data_df: pd.DataFrame, num_bootstrap_draws=10) -> (dict, pd.DataFra
                               (num_questions-any_wrong_count)/num_questions,
                     'bootstrap_counts': sorted(bootstrap_correct_counts),
                     'bootstrap_pcts': sorted(bootstrap_pct),
+                    'correct_by_raw_count': correct_by_raw_count,
+                    'incorrect_by_raw_count': incorrect_by_raw_count,
                     'date': exp_df['date'].iloc[0]
         }
         result_s = pd.Series(result_d)
