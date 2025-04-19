@@ -221,10 +221,6 @@ def test_gpt_4o_OAI():
     answer_d = json.loads(result)
     assert answer_d['Answer'] == 'No'
 
-
-
-
-
 def test_gpt_35_OAI_fine_tuned():
     #pre trained fine tuned models
     model_config = {'temperature': 0.0, 'seed': 12, 'top_p_k': 1.0,
@@ -287,6 +283,8 @@ def test_mistral8x7b_logprob():
     assert run_info['logprobs'][0].logprob <= 0.0
 
 def test_deterministic_sim():
+    # run python models/deterministic-sim.py to generate the expected results 
+    # comprehensively.
     model_config = {'temperature': 0.0, 'seed': 12, 'top_p_k': 1.0,
                     'logprobs':True, 'round': 0, 'rubric_counter': 0}
     model_name = 'deterministic-sim'
@@ -302,22 +300,28 @@ def test_deterministic_sim():
     assert run_info['logprobs'][0]['logprob'] == \
         math.log((model_config['rubric_counter'] + 1)/100)
     assert result == '(A) same'
-
+    
     model_config['round'] = 0 
     model_config['rubric_counter'] = 20
     result, run_info = llm.run(test_prompt, model_config)
     assert run_info['logprobs'][0]['logprob'] == \
         math.log((model_config['rubric_counter'] + 1)/100)
-    assert result == f'(A) different {model_config["round"]}'
+    assert result == f'(A) same'
 
-
-    # test the 5/5 case, rubrics from 80-99
-    model_config['round'] = 4
+    model_config['round'] = 0 
     model_config['rubric_counter'] = 99
     result, run_info = llm.run(test_prompt, model_config)
     assert run_info['logprobs'][0]['logprob'] == \
         math.log((model_config['rubric_counter'] + 1)/100)
-    assert result == '(A) same'
+    assert result == f'(A) same'
+    
+    # test the 5/5 case
+    model_config['round'] = 4
+    model_config['rubric_counter'] = 0
+    result, run_info = llm.run(test_prompt, model_config)
+    assert run_info['logprobs'][0]['logprob'] == \
+        math.log((model_config['rubric_counter'] + 1)/100)
+    assert result == '(A) different 4'
 
     model_config['round'] = 4
     model_config['rubric_counter'] = 99
