@@ -12,7 +12,8 @@ from together import Together
 
 MODEL = Together(api_key=os.environ["TOGETHER_KEY"])
 
-MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct-Turbo"
+#MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct-Turbo"
+MODEL_NAME="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
 
 seen_before = {} #cache previous results for run to avoid variation
 
