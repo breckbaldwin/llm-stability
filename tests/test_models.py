@@ -78,6 +78,82 @@ def test_llama_8b():
     assert run_info['top_p_k'] == 0.0
     assert len(result) > 10
 
+def test_Llama_32_instruct_Q3_K_XL():
+    model_name = 'Llama-32-3B-Instruct-Q3_K_XL'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but need to run a unit test."}] #be polite to our overlords
+    result, run_info = llm.run(test_prompt, {'temperature':1.0,
+                                            'seed': 13,
+                                            'top_p_k': 0.0})
+    assert run_info['prompt'] == test_prompt
+    #assert run_info['model_name'] == model_name
+    assert run_info['temperature'] == 1.0
+    assert run_info['seed'] == 13
+    assert run_info['top_p_k'] == 0.0
+    assert len(result) > 10
+
+
+def test_deepseek():
+    model_name = 'deepseek_R1_0528'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but need to run a unit test."}] #be polite to our overlords
+    result, run_info = llm.run(test_prompt, {'temperature':1.0,
+                                            'seed': 13,
+                                            'top_p_k': 0.0})
+    assert run_info['prompt'] == test_prompt
+    #assert run_info['model_name'] == model_name
+    assert run_info['temperature'] == 1.0
+    assert run_info['seed'] == 13
+    assert run_info['top_p_k'] == 0.0
+    assert len(result) > 10
+
+def test_gemini():
+    model_name = 'gemini_25_pro'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but need to run a unit test."}] #be polite to our overlords
+    result, run_info = llm.run(test_prompt, {'temperature':0.0,
+                                            'seed': 13, #doesn't take seed
+                                            'top_p_k': 0.0})
+    assert run_info['prompt'] == test_prompt
+    #assert run_info['model_name'] == model_name
+    assert run_info['temperature'] == 0.0
+    #assert run_info['seed'] == 13 #doesn't take seed so don't check
+    assert run_info['top_p_k'] == 0.0
+    assert len(result) > 10
+
+def test_gemini_15():
+    model_name = 'gemini_15_pro'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but need to run a unit test."}] #be polite to our overlords
+    result, run_info = llm.run(test_prompt, {'temperature':0.0,
+                                            'seed': 13, #doesn't take seed
+                                            'top_p_k': 0.0})
+    assert run_info['prompt'] == test_prompt
+    #assert run_info['model_name'] == model_name
+    assert run_info['temperature'] == 0.0
+    #assert run_info['seed'] == 13 #doesn't take seed so don't check
+    assert run_info['top_p_k'] == 0.0
+    assert len(result) > 10
+
+
+def test_stochastic_dgp():
+    import re
+    model_name = 'stochastic_dgp'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but need to run a unit test."}] #be polite to our overlords
+    result, run_info = llm.run(test_prompt, {'temperature':1.0,
+                                            'seed': 13,
+                                            'top_p_k': 0.0,
+                                            'num_toks': 100,
+                                            'prob_tok_change': .01})
+    assert run_info['prompt'] == test_prompt
+    #assert run_info['model_name'] == model_name
+    assert run_info['temperature'] == 1.0
+    assert run_info['seed'] == 13
+    assert run_info['top_p_k'] == 0.0
+    assert re.match(r'The answer is A \d+', result)
+
+
 def test_llama_70b():
     model_name = 'llama3-70b'
     llm = importlib.import_module(f'models.{model_name}')
