@@ -88,7 +88,7 @@ def run(prompt: list, config: dict) -> (str):
                                             "type": "json_schema",
                                             "json_schema": config['answer_schema']
                                         })
-    else:
+    elif logprobs_config:
         response = MODEL.chat.completions.create(
                     messages=prompt,
                     model=MODEL_NAME,
@@ -97,6 +97,14 @@ def run(prompt: list, config: dict) -> (str):
                     top_p=top_p,
                     logprobs=logprobs_config,
                     top_logprobs=config.get('top_logprobs', 0)
+                )
+    else:
+        response = MODEL.chat.completions.create(
+                    messages=prompt,
+                    model=MODEL_NAME,
+                    temperature=temperature,
+                    seed=seed,
+                    top_p=top_p,
                 )
     if logprobs_config:
         logprobs = response.choices[0].logprobs.content
