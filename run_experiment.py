@@ -10,7 +10,8 @@ import json
 import pandas as pd
 from datetime import datetime, date, MINYEAR
 import openai
-
+import concurrent.futures
+import time
 #find models/tasks dir
 
 """
@@ -61,7 +62,29 @@ def run_model(llm,
     Side Effects:
         Writes data to disk in the form: `out_dir/<date_human_readable>/outfile_root-RUN_NUM.csv`
     """
-    for i in range(num_runs):
+    i = -1
+    skip_rubrics = set()
+    previous_responses = {}
+    skip_rubrics_history = []
+    while True:
+        i += 1
+        if i == num_runs:
+            print(f"{i} runs completed, done")
+            break
+        if (len(skip_rubrics) == len(test_rubrics)
+            and num_runs == -1):
+            print(f"{i} runs completed, all TARr == 0")
+            break
+        if (len(skip_rubrics_history) > 3 
+           and sum(skip_rubrics_history[-4:])/4 == skip_rubrics_history[-1]
+           and num_runs == -1):
+           print(f"No non-determinism observed for past 4 runs, stopping")
+           break
+        if (len(skip_rubrics) == 0
+           and len(skip_rubrics_history) == 2
+           and num_runs == -1):
+           print("Perfect determinism on 2nd run, stopping")
+           break
         if context is not None:
             context.markdown(f"Running run {i}")
         llm_responses = []
@@ -79,29 +102,46 @@ def run_model(llm,
         dates = []
         logprobs = []
         print(f"Running {i}")
-        rubric_counter = 0
+        rubric_counter = -1
         for rubric in tqdm.tqdm(test_rubrics):
+            rubric_counter += 1
+            print(rubric)
+            if rubric_counter in skip_rubrics:
+#                print(f"Skipping {rubric_counter}, non-determinism already found")               
+                continue
             if context is not None:
                 if rubric_counter % 50 == 0 or rubric_counter == 10:
                     context.markdown(f"Running rubric {rubric_counter}")
             prompt = [{"role": "user", "content": rubric['input']}]
             model_config['rubric_counter'] = rubric_counter
             model_config['round'] = i
-            try:
-                response, run_config = llm.run(prompt, model_config)
-                for config in ['temperature', 'top_p_k', 'seed']:
-                    if config in model_config:
-                        assert run_config[config] == model_config[config]
-            except openai.BadRequestError as e:
-                response = "LLM Error"
-                print(f"*****PROCESSING ERROR {e} for {rubric}")
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(llm.run, prompt, model_config)
+                try:
+                    response, run_config = future.result(timeout=600)
+                except concurrent.futures.TimeoutError:
+                    print(f"Timeout on question: {rubric_counter}")
+                    continue
+            #response, run_config = llm.run(prompt, model_config)
+            for config in ['temperature', 'top_p_k', 'seed']:
+                if config in model_config:
+                    assert run_config[config] == model_config[config]
+            if rubric_counter not in previous_responses:
+                previous_responses[rubric_counter] = response
+            else:
+                if response != previous_responses[rubric_counter]:
+                    print(f"Non equivalent response {rubric_counter}")
+                    skip_rubrics.add(rubric_counter)
+                    continue
             prompts.append(json.dumps(run_config['prompt']))
             rubrics.append(json.dumps(rubric))
             questions.append(rubric['input'])
             modified_questions.append(run_config['prompt'][0]['content'])
             ground_truths.append(rubric['target'])
-            del model_config['rubric_counter']
-            del model_config['round']
+            del model_config['rubric_counter'] #deletions are to prevent
+            del model_config['round'] #model config based individuation 
+                                      #breaking file name conventions
             model_configs.append(json.dumps(model_config))
             llm_responses.append(response)
             models.append(model_name)
@@ -112,7 +152,7 @@ def run_model(llm,
             dates.append(date)
             logprobs.append(json.dumps([{'token':e['token'], 'logprob':e['logprob']} \
                 for e in run_config.get('logprobs', [])], indent=4))
-            rubric_counter += 1
+            #rubric_counter += 1
         df = pd.DataFrame({
                             'model': models,
                             'model_config':model_configs,
@@ -128,10 +168,10 @@ def run_model(llm,
                             'response': llm_responses, 
                             'logprobs': logprobs,
                             'date': dates})
-        assert len(df.index) == rubric_counter
         run_file = os.path.join(out_dir, f"{outfile_root}-{i}.csv")
         df.to_csv(run_file)
-        print(f"*** Wrote {run_file}")
+        skip_rubrics_history.append(len(skip_rubrics))
+        print(f"*** Wrote {run_file} {skip_rubrics_history}")
     return "Successfully run"
 
 def run(run_args: dict, date_str: str) -> str:
@@ -192,7 +232,7 @@ def run(run_args: dict, date_str: str) -> str:
 
 if __name__ == "__main__":
     
-    usage_message = ("python run_experiment.py -m gpt-4o -mc '{\"temperature\":0.0, \"seed\": 12, \"top_p_k\": 0.0}' -t navigate -tc '{\"prompt_type\": \"v2\", \"shots\": 0}' -n 2 -l 3 -et"
+    usage_message = ("python run_experiment.py -m llama3-8b -mc '{\"temperature\":0.0, \"seed\": 12, \"top_p_k\": 0.0}' -t navigate -tc '{\"prompt_type\": \"v2\", \"shots\": 0}' -n 2 -l 3 -et"
     +  "\npython run_experiment.py -h shows help message and more options")
 
     epilog_message = "Documentation for project is at: https://github.com/Comcast/llm-stability/blob/main/README.md"
@@ -213,7 +253,7 @@ if __name__ == "__main__":
     parser.add_argument("-tc", "--task_config", required=True,
                         help="Configuration for task")
     parser.add_argument("-n", "--num_runs", type=int, required=True, 
-                        help="Number of runs to execute")
+                        help="Number of runs to execute, -1 to run until different output found for all rubrics")
     parser.add_argument("-d", "--output_directory", required=False,
                 default="local_runs",
                 help="Where to write output files, will create all directories")
