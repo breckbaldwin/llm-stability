@@ -92,6 +92,44 @@ def test_Llama_32_instruct_Q3_K_XL():
     assert run_info['top_p_k'] == 0.0
     assert len(result) > 10
 
+def test_Llama_31_instruct_Q4_K_M():
+    model_name = 'Llama-31-8B-Instruct-Q4_K_M'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but need to run a unit test."}] #be polite to our overlords
+    result, run_info = llm.run(test_prompt, {'temperature':1.0,
+                                            'seed': 13,
+                                            'top_p_k': 0.0})
+    assert run_info['prompt'] == test_prompt
+    #assert run_info['model_name'] == model_name
+    assert run_info['temperature'] == 1.0
+    assert run_info['seed'] == 13
+    assert run_info['top_p_k'] == 0.0
+    assert len(result) > 10
+
+
+
+def test_Llama_32_instruct_Q3_K_XL_non_det():
+    model_name = 'Llama-32-3B-Instruct-Q3_K_XL_non_det'
+    llm = importlib.import_module(f'models.{model_name}')
+    test_prompt = [{"role": "user", "content": "Wakey wakey,u up? Sorry to bother you but need to run a unit test."}] #be polite to our overlords
+    result, run_info = llm.run(test_prompt, {'temperature':1.0,
+                                            'seed': 13,
+                                            'top_p_k': 0.0,
+                                            'round': 0})
+    assert run_info['prompt'] == test_prompt
+    #assert run_info['model_name'] == model_name
+    assert run_info['temperature'] == 1.0
+    assert run_info['seed'] == 13
+    assert run_info['top_p_k'] == 0.0
+    assert len(result) > 10
+    result, run_info = llm.run(test_prompt, {'temperature':1.0,
+                                            'seed': 13,
+                                            'top_p_k': 0.0,
+                                            'round': 1})
+    assert run_info['prompt'] == test_prompt
+    assert len(result) > 10
+
+    
 
 def test_deepseek():
     model_name = 'deepseek_R1_0528'
