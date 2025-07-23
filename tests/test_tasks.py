@@ -16,6 +16,227 @@ def test_college_mathematics():
               'shots': 0}
     rubrics = tasks.college_mathematics.get_test_data(config)
     print(rubrics[2])
+    task_config = {'prompt_type': 'v2',
+                   'shots': 0}
+    row = pd.Series({'gt': '(A)', 'response': '{"Answer": "A"}'})
+    assert tasks.college_mathematics.correct_fn(row, task_config) == True
+    row = pd.Series({'gt': '(A)', 'response': '{"Answer": "B"}'})
+    assert tasks.college_mathematics.correct_fn(row, task_config) == False
+    row = pd.Series({'gt': '(A)', 'response': 'The answer is (A)'})
+    assert tasks.college_mathematics.correct_fn(row, task_config) == True
+    long_response = '''
+    {
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "Answer": {
+      "type": "string",
+      "enum" : ["A", "B", "C", "D"]
+    }
+  },
+  "required": [
+    "Answer"
+  ]
+}
+
+{
+  "Answer": "B"
+}
+''' #not valid json but recoverable by string processing
+    row = pd.Series({'gt': '(B)', 'response': long_response})
+    assert tasks.college_mathematics.correct_fn(row, task_config) == True
+
+    deep_seek_response='''
+<think>
+First, I need to find where the linear transformation T maps the point (2, 1). I'm given that T maps (1, 2) to (2, 3) and (-1, 2) to (2, -3). Since T is linear, I can use the properties of linear transformations to solve this.
+
+A linear transformation satisfies two key properties:
+
+1. T(u + v) = T(u) + T(v) for any vectors u and v.
+
+2. T(cu) = cT(u) for any scalar c and vector u.
+
+I need to express (2, 1) as a linear combination of the given points (1, 2) and (-1, 2), because I know where those points are mapped to.
+
+Let me denote the vectors:
+
+Let u = (1, 2) and v = (-1, 2).
+
+I know T(u) = (2, 3) and T(v) = (2, -3).
+
+Now, I need to find T(2, 1). So, I should find scalars a and b such that:
+
+a * u + b * v = (2, 1)
+
+That is:
+
+a * (1, 2) + b * (-1, 2) = (2, 1)
+
+This gives me the system of equations:
+
+For the x-component: a * 1 + b * (-1) = 2 ⇒ a - b = 2
+
+For the y-component: a * 2 + b * 2 = 1 ⇒ 2a + 2b = 1
+
+Simplify the second equation: 2a + 2b = 1 ⇒ divide by 2: a + b = 1/2
+
+Now I have:
+
+Equation 1: a - b = 2
+
+Equation 2: a + b = 1/2
+
+I can solve this system.
+
+Add the two equations: (a - b) + (a + b) = 2 + 1/2 ⇒ 2a = 2.5 ⇒ 2a = 5/2 ⇒ a = 5/4
+
+2 + 1/2 = 4/2 + 1/2 = 5/2, so 2a = 5/2, thus a = 5/4.
+
+Now, from equation 2: a + b = 1/2
+
+5/4 + b = 1/2
+
+b = 1/2 - 5/4 = 2/4 - 5/4 = -3/4
+
+So, b = -3/4
+
+Now, since T is linear, T(a*u + b*v) = a*T(u) + b*T(v)
+
+Therefore, T(2,1) = T(a*u + b*v) = a*T(u) + b*T(v) = a*(2,3) + b*(2,-3)
+
+Plug in a = 5/4 and b = -3/4
+
+So, a*T(u) = (5/4) * (2,3) = (5/4 * 2, 5/4 * 3) = (10/4, 15/4) = (5/2, 15/4)
+
+10/4 simplifies to 5/2, and 15/4 is already simplified.
+
+b*T(v) = (-3/4) * (2, -3) = (-3/4 * 2, -3/4 * (-3)) = (-6/4, 9/4) = (-3/2, 9/4)
+
+-6/4 is -3/2, and 9/4 is fine.
+
+Now, add them together:
+
+T(2,1) = a*T(u) + b*T(v) = (5/2, 15/4) + (-3/2, 9/4)
+
+Add x-components: 5/2 + (-3/2) = (5 - 3)/2 = 2/2 = 1
+
+Add y-components: 15/4 + 9/4 = 24/4 = 6
+
+So, T(2,1) = (1, 6)
+
+Now, looking at the options:
+
+(A) (1, 6)
+
+(B) (-1, 4)
+
+(C) (3, 2)
+
+(D) (-4, 3)
+
+So, (1,6) is option A.
+
+I should double-check if I did everything correctly.
+
+I expressed (2,1) as a linear combination of (1,2) and (-1,2).
+
+I had a - b = 2 and a + b = 1/2.
+
+a + b = 1/2? Let me verify that.
+
+From the y-component: 2a + 2b = 1, so dividing by 2, a + b = 1/2, yes.
+
+Then a - b = 2
+
+Adding: 2a = 2 + 1/2 = 5/2, a = 5/4
+
+Then b = 1/2 - a = 1/2 - 5/4 = 2/4 - 5/4 = -3/4, correct.
+
+Then T(u) = (2,3), T(v) = (2,-3)
+
+a*T(u) = (5/4)(2,3) = (10/4, 15/4) = (5/2, 15/4)
+
+b*T(v) = (-3/4)(2,-3) = (-6/4, 9/4) = (-3/2, 9/4)
+
+Now, (5/2, 15/4) + (-3/2, 9/4) = (5/2 - 3/2, 15/4 + 9/4) = (2/2, 24/4) = (1, 6)
+
+Yes.
+
+Since T is linear, I can find the matrix representation.
+
+Let me find the matrix of T.
+
+Assume the standard basis. Let e1 = (1,0), e2 = (0,1).
+
+But I don't have T on the standard basis directly. I have T on (1,2) and (-1,2).
+
+(1,2) and (-1,2) are two vectors.
+
+I can express the standard basis in terms of these or find the transformation.
+
+Set up the matrix.
+
+Suppose T is given by a matrix A = [a b; c d], so that T(x,y) = (ax + by, cx + dy)
+
+Now, T(1,2) = (a*1 + b*2, c*1 + d*2) = (a + 2b, c + 2d) = (2,3)
+
+So, a + 2b = 2
+
+c + 2d = 3
+
+Similarly, T(-1,2) = (a*(-1) + b*2, c*(-1) + d*2) = (-a + 2b, -c + 2d) = (2, -3)
+
+So, -a + 2b = 2
+
+And -c + 2d = -3
+
+Now I have two equations for a and b, and two for c and d.
+
+First, for a and b:
+
+Eq1: a + 2b = 2
+
+Eq2: -a + 2b = 2
+
+Add Eq1 and Eq2: (a + 2b) + (-a + 2b) = 2 + 2 => 4b = 4 => b = 1
+
+Then from Eq1: a + 2(1) = 2 => a + 2 = 2 => a = 0
+
+a = 0?
+
+Now, for c and d:
+
+Eq3: c + 2d = 3
+
+Eq4: -c + 2d = -3
+
+Add Eq3 and Eq4: (c + 2d) + (-c + 2d) = 3 + (-3) => 4d = 0 => d = 0
+
+Then from Eq3: c + 2(0) = 3 => c = 3
+
+But from Eq4: -c + 2(0) = -3 => -c = -3 => c = 3, consistent.
+
+But d = 0.
+
+Now, T(2,1) = A * (2,1) = [a b; c d] * (2,1) = [0 1; 3 0] * (2,1) = (0*2 + 1*1, 3*2 + 0*1) = (1, 6)
+
+Same as before.
+
+In the matrix, a=0, b=1, c=3, d=0.
+
+T(1,2) = (0*1 + 1*2, 3*1 + 0*2) = (2,3), good.
+
+T(-1,2) = (0*(-1) + 1*2, 3*(-1) + 0*2) = (2, -3), good.
+
+T(2,1) = (0*2 + 1*1, 3*2 + 0*1) = (1,6), perfect.
+
+So, it maps to (1,6), which is option A.
+
+In the options, (A) is (1,6), so
+'''
+    row = pd.Series({'gt': '(A)', 'response': deep_seek_response})
+    assert tasks.college_mathematics.correct_fn(row, task_config) == True
+
 
 
 def test_high_school_european_history():
