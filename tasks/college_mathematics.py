@@ -4,6 +4,8 @@ import sys
 import os
 sys.path.append(os.getcwd())
 import helper_functions
+import json
+import re
 
 
 """
@@ -114,6 +116,16 @@ def correct_fn(row: pd.Series, config:dict)-> (bool, None):
     Raises:
         LookupError for Blown Uniqueness Presupposition
     """
+    try:
+        answer = json.loads(row['response'])['Answer'] 
+        if answer == row['gt']:
+            return True
+        gt = re.sub(r'[()]', '', row['gt'])
+        if answer == gt:
+            return True
+        return False
+    except json.JSONDecodeError:
+        pass
     answer = answer_fn(row, config) #throws LookupError Blown UP
     if answer is None:
         return answer
