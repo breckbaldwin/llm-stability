@@ -124,7 +124,7 @@ The question is:
 #MODELS = ['deepseek_R1_0528']
 MODELS = ['gpt-4o_OAI']
 MODEL_CONFIGS = [{'temperature': 0.0, 'seed': 12, 'top_p_k': 0.0,
-                 'prefix': ''}, {'temperature': 0.0, 'seed': 12, 'top_p_k': 0.0}]
+                 'prefix': ''}]
 
 YES_NO_TASKS = ['navigate']
 
@@ -140,7 +140,7 @@ A_D_TASKS = ['professional_accounting',  'college_mathematics',
 TASKS = ['college_mathematics']
 
 
-TASK_CONFIGS = [{'prompt_type': 'v2', 'shots': 0}]
+TASK_CONFIGS = [{'prompt_type': 'v2', 'shots': 0, 'prefix': None}]
                 # 'prefix': '\n\n', 'suffix': '\n\n'}]
                 #{'prompt_type': 'v2', 'shots': 0}]
 
@@ -153,7 +153,7 @@ experiments = helper_functions.experiment_setup(MODELS, MODEL_CONFIGS,
 for model, model_config, task, task_config in experiments:
     date = datetime.now()
     datetime_string = date.strftime("%Y-%m-%d_%H-%M-%S")
-    task_config_in_filename = 'no-schema'
+    task_config_in_filename = 'answ_schema'
     if 'prefix' in model_config:
         if task in A_D_TASKS:
             model_config['prefix'] = json_schema_prompt_A_D
@@ -164,7 +164,7 @@ for model, model_config, task, task_config in experiments:
         else:
             print(f"No schema for {task}, skipping")
             continue
-        task_config_in_filename = 'schema'
+    breakpoint()
     run_args = {'output_directory': 'runs/',
                 'model': model,
                 'model_config': model_config,
@@ -173,6 +173,8 @@ for model, model_config, task, task_config in experiments:
                 'task_config': task_config,
                 'task_config_in_filename': task_config_in_filename,
                 'num_runs': -1,
+                'end_on_answer': True,
+                'keep_disagreement': True,
 #                'limit_num_rubrics': 1
     }
 #    datetime_string = '0001-01-01_00-00-00'
